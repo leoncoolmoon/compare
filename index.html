@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Text Compare Tool</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    #text-container {
+      width: 95%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    textarea {
+      width: 95%;
+      height: 25vh;
+      margin-bottom: 5px;
+    }
+    .result {
+      width: 95%;
+      height: 45vh;
+      overflow-y: auto;
+      margin-top: 10px;
+      white-space: pre-wrap;
+      font-family: monospace;
+      display: none;
+      border: 1px solid #ccc;
+      padding: 10px;
+    }
+    .added {
+      background-color: #d4fcdc;
+      color: green;
+    }
+    .removed {
+      background-color: #ffd6d6;
+      color: red;
+      text-decoration: line-through;
+    }
+    .deleted {
+      display: none;
+    }
+    .accepted {
+      font-style: italic;
+      background-color: transparent;
+      color: inherit;
+      text-decoration: none;
+    }
+    .original {
+      background-color: transparent;
+      color: inherit;
+    }
+    .change-group {
+      display: inline;
+      cursor: pointer;
+      position: relative;
+    }
+    .change-group:hover {
+      opacity: 0.8;
+    }
+    #buttons {
+      margin-top: 20px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+    }
+    
+    .button-group {
+      display: flex;
+      gap: 5px;
+    }
+    
+    button {
+      padding: 8px 16px;
+      font-size: 14px;
+      margin: 0;
+      background-color: #f5f5f5;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      cursor: pointer;
+      color: #333;
+      white-space: nowrap;
+    }
+    
+    button:hover {
+      background-color: #e9e9e9;
+    }
+    
+    .primary-btn {
+      background-color: #4CAF50;
+      color: white;
+      border-color: #45a049;
+    }
+    
+    .primary-btn:hover {
+      background-color: #45a049;
+    }
+    
+    .secondary-btn {
+      background-color: #f44336;
+      color: white;
+      border-color: #da190b;
+    }
+    
+    .secondary-btn:hover {
+      background-color: #da190b;
+    }
+    .drop-area {
+      border: 2px dashed #ccc;
+      padding: 20px;
+      text-align: center;
+      margin-bottom: 10px;
+      width: 95%;
+    }
+    .drop-area.highlight {
+      border-color: #666;
+      background-color: #f0f0f0;
+    }
+    
+    /* 浮动菜单样式 */
+    #floating-menu {
+      position: absolute;
+      background: white;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      padding: 5px;
+      display: none;
+      z-index: 1000;
+    }
+    
+    .menu-btn {
+      display: inline-flex;
+      align-items: center;
+      padding: 8px 12px;
+      margin: 2px;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background-color 0.2s;
+    }
+    
+    .accept-btn {
+      background-color: #4CAF50;
+      color: white;
+    }
+    
+    .accept-btn:hover {
+      background-color: #45a049;
+    }
+    
+    .reject-btn {
+      background-color: #f44336;
+      color: white;
+    }
+    
+    .reject-btn:hover {
+      background-color: #da190b;
+    }
+    
+    .menu-btn .icon {
+      margin-right: 5px;
+      font-weight: bold;
+    }
+    
+    #copy-final-btn {
+      background-color: #2196F3;
+      color: white;
+      border: 1px solid #1976D2;
+    }
+    
+    #copy-final-btn:hover {
+      background-color: #1976D2;
+    }
+  </style>
+</head>
+<body>
+
+<h2>Text Comparison Tool</h2>
+
+<div id="text-container">
+    <textarea id="text1" placeholder="Original text... Drag & drop text file here or paste text here"></textarea>
+  <div id="count1">0 characters</div>
+  
+    <textarea id="text2" placeholder="Modified text... Drag & drop text file here or paste text here"></textarea>
+  <div id="count2">0 characters</div>
+  
+  <div id="output" class="result"></div>
+</div>
+
+<div id="buttons">
+  <button id="compareBtn" onclick="compareTexts()" class="primary-btn">Compare</button>
+  
+  <div class="button-group" style="display: none;" id="result-buttons">
+    <button id="backBtn" onclick="back()">Back</button>
+    <button id="clearBtn" onclick="clearUI()">Clear</button>
+  </div>
+  
+  <div class="button-group" style="display: none;" id="batch-buttons">
+    <button id="accept-all-btn" onclick="acceptAllChanges()" class="primary-btn">Accept All</button>
+    <button id="reject-all-btn" onclick="rejectAllChanges()" class="secondary-btn">Reject All</button>
+  </div>
+  
+  <div class="button-group" style="display: none;" id="copy-button">
+    <button id="copy-final-btn" onclick="copyFinalText()">Copy Final Text</button>
+  </div>
+</div>
+
+<!-- 浮动菜单 -->
+<div id="floating-menu">
+  <button class="menu-btn accept-btn" onclick="acceptChange()">
+    <span class="icon">✓</span>Accept
+  </button>
+  <button class="menu-btn reject-btn" onclick="rejectChange()">
+    <span class="icon">✗</span>Reject
+  </button>
+</div>
+
+<script>
+  let currentChangeGroup = null;
+  let changeGroupCounter = 0;
+
+  function updateCharCount(id, countId) {
+    const text = document.getElementById(id).value;
+    document.getElementById(countId).textContent = `${text.length} characters`;
+  }
+
+  document.getElementById('text1').addEventListener('input', () => updateCharCount('text1', 'count1'));
+  document.getElementById('text2').addEventListener('input', () => updateCharCount('text2', 'count2'));
+  document.getElementById('text1').addEventListener('paste', () => {
+    setTimeout(() => updateCharCount('text1', 'count1'), 0);
+  });
+  document.getElementById('text2').addEventListener('paste', () => {
+    setTimeout(() => updateCharCount('text2', 'count2'), 0);
+  });
+
+  function diffWords(oldText, newText) {
+    const oWords = oldText.split(/(\s+)/);
+    const nWords = newText.split(/(\s+)/);
+    
+    // 使用LCS算法进行更好的diff
+    const diff = computeDiff(oWords, nWords);
+    const output = [];
+    
+    for (let i = 0; i < diff.length; i++) {
+      const item = diff[i];
+      
+      if (item.type === 'equal') {
+        output.push(item.value);
+      } else {
+        // 创建变更组
+        const groupId = `change-group-${changeGroupCounter++}`;
+        let changeContent = '';
+        
+        if (item.type === 'delete') {
+          changeContent += `<span class="removed" data-type="removed">${item.value}</span>`;
+        } else if (item.type === 'insert') {
+          changeContent += `<span class="added" data-type="added">${item.value}</span>`;
+        } else if (item.type === 'replace') {
+          changeContent += `<span class="removed" data-type="removed">${item.oldValue}</span>`;
+          changeContent += `<span class="added" data-type="added">${item.newValue}</span>`;
+        }
+        
+        output.push(`<span class="change-group" data-group-id="${groupId}" onclick="showMenu(event, '${groupId}')">${changeContent}</span>`);
+      }
+    }
+    
+    return output.join('');
+  }
+
+  // 基于LCS的diff算法
+  function computeDiff(oldArr, newArr) {
+    const lcs = computeLCS(oldArr, newArr);
+    const diff = [];
+    
+    let i = 0, j = 0, k = 0;
+    
+    while (i < oldArr.length || j < newArr.length) {
+      if (k < lcs.length && i < oldArr.length && j < newArr.length && 
+          oldArr[i] === newArr[j] && oldArr[i] === lcs[k]) {
+        // 相同的部分
+        diff.push({ type: 'equal', value: oldArr[i] });
+        i++;
+        j++;
+        k++;
+      } else {
+        // 收集删除和插入的内容
+        let deletedItems = [];
+        let insertedItems = [];
+        
+        // 收集删除的项目
+        while (i < oldArr.length && (k >= lcs.length || oldArr[i] !== lcs[k])) {
+          deletedItems.push(oldArr[i]);
+          i++;
+        }
+        
+        // 收集插入的项目
+        while (j < newArr.length && (k >= lcs.length || newArr[j] !== lcs[k])) {
+          insertedItems.push(newArr[j]);
+          j++;
+        }
+        
+        // 根据情况添加diff项
+        if (deletedItems.length > 0 && insertedItems.length > 0) {
+          // 替换
+          diff.push({
+            type: 'replace',
+            oldValue: deletedItems.join(''),
+            newValue: insertedItems.join('')
+          });
+        } else if (deletedItems.length > 0) {
+          // 删除
+          diff.push({
+            type: 'delete',
+            value: deletedItems.join('')
+          });
+        } else if (insertedItems.length > 0) {
+          // 插入
+          diff.push({
+            type: 'insert',
+            value: insertedItems.join('')
+          });
+        }
+      }
+    }
+    
+    return diff;
+  }
+
+  // 计算最长公共子序列
+  function computeLCS(arr1, arr2) {
+    const m = arr1.length;
+    const n = arr2.length;
+    const dp = Array(m + 1).fill(null).map(() => Array(n + 1).fill(0));
+    
+    // 填充DP表
+    for (let i = 1; i <= m; i++) {
+      for (let j = 1; j <= n; j++) {
+        if (arr1[i - 1] === arr2[j - 1]) {
+          dp[i][j] = dp[i - 1][j - 1] + 1;
+        } else {
+          dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
+        }
+      }
+    }
+    
+    // 回溯构建LCS
+    const lcs = [];
+    let i = m, j = n;
+    
+    while (i > 0 && j > 0) {
+      if (arr1[i - 1] === arr2[j - 1]) {
+        lcs.unshift(arr1[i - 1]);
+        i--;
+        j--;
+      } else if (dp[i - 1][j] > dp[i][j - 1]) {
+        i--;
+      } else {
+        j--;
+      }
+    }
+    
+    return lcs;
+  }
+
+  function showMenu(event, groupId) {
+    event.stopPropagation();
+    const menu = document.getElementById('floating-menu');
+    const rect = event.target.getBoundingClientRect();
+    
+    currentChangeGroup = groupId;
+    
+    menu.style.left = rect.left + 'px';
+    menu.style.top = (rect.bottom + 5) + 'px';
+    menu.style.display = 'block';
+  }
+
+  function acceptChange() {
+    if (!currentChangeGroup) return;
+    
+    const group = document.querySelector(`[data-group-id="${currentChangeGroup}"]`);
+    if (!group) return;
+    
+    const removedSpans = group.querySelectorAll('[data-type="removed"]');
+    const addedSpans = group.querySelectorAll('[data-type="added"]');
+    
+    removedSpans.forEach(span => {
+      span.className = 'deleted';
+    });
+    
+    addedSpans.forEach(span => {
+      span.className = 'accepted';
+    });
+    
+    hideMenu();
+  }
+
+  function rejectChange() {
+    if (!currentChangeGroup) return;
+    
+    const group = document.querySelector(`[data-group-id="${currentChangeGroup}"]`);
+    if (!group) return;
+    
+    const removedSpans = group.querySelectorAll('[data-type="removed"]');
+    const addedSpans = group.querySelectorAll('[data-type="added"]');
+    
+    removedSpans.forEach(span => {
+      span.className = 'original';
+    });
+    
+    addedSpans.forEach(span => {
+      span.className = 'deleted';
+    });
+    
+    hideMenu();
+  }
+
+  function acceptAllChanges() {
+    const pendingGroups = document.querySelectorAll('.change-group');
+    pendingGroups.forEach(group => {
+      const removedSpans = group.querySelectorAll('[data-type="removed"]');
+      const addedSpans = group.querySelectorAll('[data-type="added"]');
+      
+      // 只处理还没有被处理过的变更
+      const hasUnprocessed = [...removedSpans, ...addedSpans].some(span => 
+        span.classList.contains('removed') || span.classList.contains('added')
+      );
+      
+      if (hasUnprocessed) {
+        removedSpans.forEach(span => {
+          if (span.classList.contains('removed')) {
+            span.className = 'deleted';
+          }
+        });
+        
+        addedSpans.forEach(span => {
+          if (span.classList.contains('added')) {
+            span.className = 'accepted';
+          }
+        });
+      }
+    });
+  }
+  function rejectAllChanges(){
+      const pendingGroups = document.querySelectorAll('.change-group');
+    pendingGroups.forEach(group => {
+      const removedSpans = group.querySelectorAll('[data-type="removed"]');
+      const addedSpans = group.querySelectorAll('[data-type="added"]');
+      
+      // 只处理还没有被处理过的变更
+      const hasUnprocessed = [...removedSpans, ...addedSpans].some(span => 
+        span.classList.contains('removed') || span.classList.contains('added')
+      );
+      
+      if (hasUnprocessed) {
+        removedSpans.forEach(span => {
+          if (span.classList.contains('removed')) {
+            span.className = 'original';
+          }
+        });
+        
+        addedSpans.forEach(span => {
+          if (span.classList.contains('added')) {
+            span.className = 'deleted';
+          }
+        });
+      }
+    });
+  
+  }
+
+  function hideMenu() {
+    document.getElementById('floating-menu').style.display = 'none';
+    currentChangeGroup = null;
+  }
+
+  function copyFinalText() {
+    const output = document.getElementById('output');
+    const textContent = extractFinalText(output);
+    
+    navigator.clipboard.writeText(textContent).then(() => {
+      alert('Final text copied to clipboard!');
+    }).catch(err => {
+      console.error('Failed to copy text: ', err);
+      // 降级方案
+      const textArea = document.createElement('textarea');
+      textArea.value = textContent;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      alert('Final text copied to clipboard!');
+    });
+  }
+
+  function extractFinalText(element) {
+    let result = '';
+    
+    function traverse(node) {
+      if (node.nodeType === Node.TEXT_NODE) {
+        result += node.textContent;
+      } else if (node.nodeType === Node.ELEMENT_NODE) {
+        if (node.classList.contains('deleted')) {
+          // 跳过deleted的内容
+          return;
+        } else if (node.classList.contains('accepted') || node.classList.contains('original')) {
+          // 包含accepted和original的内容
+          result += node.textContent;
+        } else if (node.classList.contains('removed') || node.classList.contains('added')) {
+          // 跳过未处理的removed和added内容
+          return;
+        } else {
+          // 递归处理其他元素
+          for (let child of node.childNodes) {
+            traverse(child);
+          }
+        }
+      }
+    }
+    
+    traverse(element);
+    return result.trim();
+  }
+
+  function compareTexts() {
+    changeGroupCounter = 0; // 重置计数器
+    const text1 = document.getElementById('text1').value.trim();
+    const text2 = document.getElementById('text2').value.trim();
+    const result = diffWords(text1, text2);
+    document.getElementById('output').innerHTML = result;
+    document.getElementById('text1').style.display = 'none';
+    document.getElementById('text2').style.display = 'none';
+    document.getElementById('compareBtn').style.display = 'none';
+    document.getElementById('result-buttons').style.display = 'flex';
+    document.getElementById('batch-buttons').style.display = 'flex';
+    document.getElementById('copy-button').style.display = 'flex';
+    document.getElementById('output').style.display = 'block';
+  }
+  
+  function back() {
+    document.getElementById('output').innerHTML = '';
+    document.getElementById('text1').style.display = 'block';
+    document.getElementById('text2').style.display = 'block';
+    document.getElementById('compareBtn').style.display = 'inline-block';
+    document.getElementById('result-buttons').style.display = 'none';
+    document.getElementById('batch-buttons').style.display = 'none';
+    document.getElementById('copy-button').style.display = 'none';
+    document.getElementById('output').style.display = 'none';
+    hideMenu();
+  }
+
+  function clearUI() {
+    document.getElementById('text1').value = '';
+    document.getElementById('text2').value = '';
+    document.getElementById('count1').textContent = '0 characters';
+    document.getElementById('count2').textContent = '0 characters';
+    back();
+  }
+
+  // 点击其他地方隐藏菜单
+  document.addEventListener('click', function(event) {
+    if (!event.target.closest('#floating-menu') && !event.target.closest('.change-group')) {
+      hideMenu();
+    }
+  });
+
+  // 拖放功能实现
+  function setupDropArea(dropAreaId, textareaId) {
+    const dropArea = document.getElementById(dropAreaId);
+    const textarea = document.getElementById(textareaId);
+
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+      dropArea.addEventListener(eventName, preventDefaults, false);
+    });
+
+    function preventDefaults(e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+      dropArea.addEventListener(eventName, highlight, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+      dropArea.addEventListener(eventName, unhighlight, false);
+    });
+
+    function highlight() {
+      dropArea.classList.add('highlight');
+    }
+
+    function unhighlight() {
+      dropArea.classList.remove('highlight');
+    }
+
+    dropArea.addEventListener('drop', handleDrop, false);
+
+    function handleDrop(e) {
+      const dt = e.dataTransfer;
+      const files = dt.files;
+      
+      if (files.length > 0) {
+        const file = files[0];
+        const reader = new FileReader();
+          reader.onload = function(e) {
+            textarea.value = e.target.result;
+            updateCharCount(textareaId, textareaId === 'text1' ? 'count1' : 'count2');
+          };
+          reader.readAsText(file);
+       
+      }
+    }
+  }
+
+  // 为两个文本框设置拖放功能
+  setupDropArea('text1', 'text1');
+  setupDropArea('text2', 'text2');
+</script>
+
+</body>
+</html>
