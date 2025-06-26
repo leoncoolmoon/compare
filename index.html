@@ -227,6 +227,16 @@
   let currentChangeGroup = null;
   let changeGroupCounter = 0;
 
+  // 安全地转义HTML
+  function escapeHtml(unsafe) {
+    return unsafe
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
   function updateCharCount(id, countId) {
     const text = document.getElementById(id).value;
     document.getElementById(countId).textContent = `${text.length} characters`;
@@ -253,19 +263,19 @@
       const item = diff[i];
       
       if (item.type === 'equal') {
-        output.push(item.value);
+        output.push(escapeHtml(item.value));
       } else {
         // 创建变更组
         const groupId = `change-group-${changeGroupCounter++}`;
         let changeContent = '';
         
         if (item.type === 'delete') {
-          changeContent += `<span class="removed" data-type="removed">${item.value}</span>`;
+          changeContent += `<span class="removed" data-type="removed">${escapeHtml(item.value)}</span>`;
         } else if (item.type === 'insert') {
-          changeContent += `<span class="added" data-type="added">${item.value}</span>`;
+          changeContent += `<span class="added" data-type="added">${escapeHtml(item.value)}</span>`;
         } else if (item.type === 'replace') {
-          changeContent += `<span class="removed" data-type="removed">${item.oldValue}</span>`;
-          changeContent += `<span class="added" data-type="added">${item.newValue}</span>`;
+          changeContent += `<span class="removed" data-type="removed">${escapeHtml(item.oldValue)}</span>`;
+          changeContent += `<span class="added" data-type="added">${escapeHtml(item.newValue)}</span>`;
         }
         
         output.push(`<span class="change-group" data-group-id="${groupId}" onclick="showMenu(event, '${groupId}')">${changeContent}</span>`);
@@ -448,8 +458,9 @@
       }
     });
   }
-  function rejectAllChanges(){
-      const pendingGroups = document.querySelectorAll('.change-group');
+  
+  function rejectAllChanges() {
+    const pendingGroups = document.querySelectorAll('.change-group');
     pendingGroups.forEach(group => {
       const removedSpans = group.querySelectorAll('[data-type="removed"]');
       const addedSpans = group.querySelectorAll('[data-type="added"]');
@@ -473,7 +484,6 @@
         });
       }
     });
-  
   }
 
   function hideMenu() {
@@ -610,12 +620,12 @@
       if (files.length > 0) {
         const file = files[0];
         const reader = new FileReader();
-          reader.onload = function(e) {
-            textarea.value = e.target.result;
-            updateCharCount(textareaId, textareaId === 'text1' ? 'count1' : 'count2');
-          };
-          reader.readAsText(file);
-       
+        reader.onload = function(e) {
+          // 安全处理文件内容
+          textarea.value = e.target.result;
+          updateCharCount(textareaId, textareaId === 'text1' ? 'count1' : 'count2');
+        };
+        reader.readAsText(file);
       }
     }
   }
