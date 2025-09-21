@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Text Compare Tool</title>
+  <title>Enhanced Text Compare Tool</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -10,18 +10,64 @@
       display: flex;
       flex-direction: column;
       align-items: center;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
     }
-    #text-container {
+    
+    .main-container {
       width: 95%;
+      max-width: 1200px;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 30px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    }
+    
+    h2 {
+      text-align: center;
+      color: #333;
+      margin-bottom: 30px;
+      font-size: 2.5em;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    #text-container {
+      width: 100%;
       display: flex;
       flex-direction: column;
       align-items: center;
     }
+    
     textarea {
       width: 95%;
       height: 25vh;
       margin-bottom: 5px;
+      padding: 15px;
+      border: 2px solid #e1e1e1;
+      border-radius: 12px;
+      font-size: 16px;
+      line-height: 1.5;
+      resize: vertical;
+      transition: border-color 0.3s ease;
     }
+    
+    textarea:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    
+    .char-count {
+      font-size: 0.9em;
+      color: #666;
+      margin-bottom: 15px;
+      font-weight: 500;
+    }
+    
     .result {
       width: 95%;
       height: 45vh;
@@ -30,107 +76,153 @@
       white-space: pre-wrap;
       font-family: monospace;
       display: none;
-      border: 1px solid #ccc;
-      padding: 10px;
+      border: 2px solid #e1e1e1;
+      padding: 20px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
     }
+    
     .added {
       background-color: #d4fcdc;
       color: green;
+      padding: 2px 4px;
+      border-radius: 4px;
     }
+    
     .removed {
       background-color: #ffd6d6;
       color: red;
       text-decoration: line-through;
+      padding: 2px 4px;
+      border-radius: 4px;
     }
+    
+    .abbreviation {
+      background-color: #fff3cd;
+      color: #856404;
+      padding: 2px 4px;
+      border-radius: 4px;
+      border: 1px solid #ffeaa7;
+    }
+    
+    .expansion {
+      background-color: #e7f3ff;
+      color: #0c5460;
+      padding: 2px 4px;
+      border-radius: 4px;
+      border: 1px solid #b3d9ff;
+    }
+    
     .deleted {
       display: none;
     }
+    
     .accepted {
       font-style: italic;
       background-color: transparent;
       color: inherit;
       text-decoration: none;
     }
+    
     .original {
       background-color: transparent;
       color: inherit;
     }
+    
     .change-group {
       display: inline;
       cursor: pointer;
       position: relative;
+      transition: opacity 0.2s ease;
     }
+    
     .change-group:hover {
       opacity: 0.8;
     }
+    
     #buttons {
-      margin-top: 20px;
+      margin-top: 30px;
       display: flex;
       flex-wrap: wrap;
       justify-content: center;
-      gap: 10px;
+      gap: 15px;
     }
     
     .button-group {
       display: flex;
-      gap: 5px;
+      gap: 10px;
     }
     
     button {
-      padding: 8px 16px;
+      padding: 12px 24px;
       font-size: 14px;
       margin: 0;
-      background-color: #f5f5f5;
-      border: 1px solid #ccc;
-      border-radius: 4px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      border: none;
+      border-radius: 10px;
       cursor: pointer;
-      color: #333;
       white-space: nowrap;
+      font-weight: 600;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      min-width: 120px;
     }
     
     button:hover {
-      background-color: #e9e9e9;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
     }
     
     .primary-btn {
-      background-color: #4CAF50;
-      color: white;
-      border-color: #45a049;
+      background: linear-gradient(135deg, #4CAF50, #45a049);
     }
     
     .primary-btn:hover {
-      background-color: #45a049;
+      box-shadow: 0 8px 20px rgba(76, 175, 80, 0.3);
     }
     
     .secondary-btn {
-      background-color: #f44336;
-      color: white;
-      border-color: #da190b;
+      background: linear-gradient(135deg, #f44336, #da190b);
     }
     
     .secondary-btn:hover {
-      background-color: #da190b;
+      box-shadow: 0 8px 20px rgba(244, 67, 54, 0.3);
     }
+    
+    .info-btn {
+      background: linear-gradient(135deg, #2196F3, #1976D2);
+    }
+    
+    .info-btn:hover {
+      box-shadow: 0 8px 20px rgba(33, 150, 243, 0.3);
+    }
+    
     .drop-area {
       border: 2px dashed #ccc;
       padding: 20px;
       text-align: center;
       margin-bottom: 10px;
       width: 95%;
-    }
-    .drop-area.highlight {
-      border-color: #666;
-      background-color: #f0f0f0;
+      border-radius: 12px;
+      transition: all 0.3s ease;
+      background: rgba(255, 255, 255, 0.5);
     }
     
-    /* 浮动菜单样式 */
+    .drop-area.highlight {
+      border-color: #667eea;
+      background-color: rgba(102, 126, 234, 0.1);
+      transform: scale(1.02);
+    }
+    
+    /* Floating menu styles */
     #floating-menu {
       position: absolute;
       background: white;
-      border: 1px solid #ccc;
-      border-radius: 5px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-      padding: 5px;
+      border: 1px solid #e1e1e1;
+      border-radius: 10px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+      padding: 8px;
       display: none;
       z-index: 1000;
     }
@@ -138,82 +230,110 @@
     .menu-btn {
       display: inline-flex;
       align-items: center;
-      padding: 8px 12px;
-      margin: 2px;
+      padding: 10px 15px;
+      margin: 3px;
       border: none;
-      border-radius: 3px;
+      border-radius: 8px;
       cursor: pointer;
       font-size: 14px;
-      transition: background-color 0.2s;
+      font-weight: 600;
+      transition: all 0.2s ease;
+      min-width: 100px;
+      justify-content: center;
     }
     
     .accept-btn {
-      background-color: #4CAF50;
+      background: linear-gradient(135deg, #4CAF50, #45a049);
       color: white;
     }
     
     .accept-btn:hover {
-      background-color: #45a049;
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(76, 175, 80, 0.3);
     }
     
     .reject-btn {
-      background-color: #f44336;
+      background: linear-gradient(135deg, #f44336, #da190b);
       color: white;
     }
     
     .reject-btn:hover {
-      background-color: #da190b;
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(244, 67, 54, 0.3);
     }
     
     .menu-btn .icon {
-      margin-right: 5px;
+      margin-right: 8px;
       font-weight: bold;
     }
     
-    #copy-final-btn {
-      background-color: #2196F3;
-      color: white;
-      border: 1px solid #1976D2;
-    }
-    
-    #copy-final-btn:hover {
-      background-color: #1976D2;
+    @media (max-width: 768px) {
+      .main-container {
+        padding: 20px;
+        width: 98%;
+      }
+      
+      button {
+        width: 100%;
+        margin-bottom: 10px;
+        min-width: auto;
+      }
+      
+      .button-group {
+        flex-direction: column;
+        width: 100%;
+      }
+      
+      #buttons {
+        flex-direction: column;
+        align-items: center;
+      }
+      
+      textarea {
+        height: 20vh;
+      }
+      
+      .result {
+        height: 35vh;
+      }
     }
   </style>
 </head>
 <body>
 
-<h2>Text Comparison Tool</h2>
+<div class="main-container">
+  <h2>Enhanced Text Compare Tool</h2>
 
-<div id="text-container">
-    <textarea id="text1" placeholder="Original text... Drag & drop text file here or paste text here"></textarea>
-  <div id="count1">0 characters</div>
-  
-    <textarea id="text2" placeholder="Modified text... Drag & drop text file here or paste text here"></textarea>
-  <div id="count2">0 characters</div>
-  
-  <div id="output" class="result"></div>
+  <div id="text-container">
+      <textarea id="text1" placeholder="Original text... Drag & drop text file here or paste text here"></textarea>
+    <div id="count1" class="char-count">0 characters</div>
+    
+      <textarea id="text2" placeholder="Modified text... Drag & drop text file here or paste text here"></textarea>
+    <div id="count2" class="char-count">0 characters</div>
+    
+    <div id="output" class="result"></div>
+  </div>
+
+  <div id="buttons">
+    <button id="compareBtn" onclick="compareTexts()" class="primary-btn">Compare Texts</button>
+    
+    <div class="button-group" style="display: none;" id="result-buttons">
+      <button id="backBtn" onclick="back()">Back to Edit</button>
+      <button id="clearBtn" onclick="clearUI()">Clear All</button>
+    </div>
+    
+    <div class="button-group" style="display: none;" id="batch-buttons">
+      <button id="accept-all-btn" onclick="acceptAllChanges()" class="primary-btn">Accept All</button>
+      <button id="reject-all-btn" onclick="rejectAllChanges()" class="secondary-btn">Reject All</button>
+    </div>
+    
+    <div class="button-group" style="display: none;" id="copy-button">
+      <button id="copy-final-btn" onclick="copyFinalText()" class="info-btn">Copy Final Text</button>
+    </div>
+  </div>
 </div>
 
-<div id="buttons">
-  <button id="compareBtn" onclick="compareTexts()" class="primary-btn">Compare</button>
-  
-  <div class="button-group" style="display: none;" id="result-buttons">
-    <button id="backBtn" onclick="back()">Back</button>
-    <button id="clearBtn" onclick="clearUI()">Clear</button>
-  </div>
-  
-  <div class="button-group" style="display: none;" id="batch-buttons">
-    <button id="accept-all-btn" onclick="acceptAllChanges()" class="primary-btn">Accept All</button>
-    <button id="reject-all-btn" onclick="rejectAllChanges()" class="secondary-btn">Reject All</button>
-  </div>
-  
-  <div class="button-group" style="display: none;" id="copy-button">
-    <button id="copy-final-btn" onclick="copyFinalText()">Copy Final Text</button>
-  </div>
-</div>
-
-<!-- 浮动菜单 -->
+<!-- Floating menu -->
 <div id="floating-menu">
   <button class="menu-btn accept-btn" onclick="acceptChange()">
     <span class="icon">✓</span>Accept
@@ -227,7 +347,7 @@
   let currentChangeGroup = null;
   let changeGroupCounter = 0;
 
-  // 安全地转义HTML
+  // Safely escape HTML
   function escapeHtml(unsafe) {
     return unsafe
       .replace(/&/g, "&amp;")
@@ -251,11 +371,94 @@
     setTimeout(() => updateCharCount('text2', 'count2'), 0);
   });
 
+  // Enhanced abbreviation matching - more restrictive
+  function isAbbreviation(abbr, fullText) {
+    if (!abbr || !fullText) return false;
+    
+    // Clean abbreviation (remove punctuation, convert to uppercase)
+    const cleanAbbr = abbr.replace(/[^\w]/g, '').toUpperCase();
+    if (cleanAbbr.length < 2 || cleanAbbr.length > 8) return false; // More restrictive length
+    
+    // Must be all uppercase or mixed case to be considered an abbreviation
+    if (abbr.toLowerCase() === abbr) return false;
+    
+    // Extract words from full text (remove common words)
+    const commonWords = new Set(['A', 'AN', 'THE', 'OF', 'IN', 'AT', 'FOR', 'TO', 'WITH', 'BY', 'FROM', 'AND', 'OR', 'IS', 'ARE', 'WAS', 'WERE']);
+    const words = fullText.replace(/[^\w\s]/g, '').split(/\s+/)
+                         .filter(word => word.length > 0 && !commonWords.has(word.toUpperCase()));
+    
+    if (words.length < 2 || words.length > 6) return false; // Reasonable word count
+    
+    // Check if abbreviation matches first letters exactly
+    const firstLetters = words.map(word => word.charAt(0).toUpperCase()).join('');
+    return firstLetters === cleanAbbr;
+  }
+
+  // Corrected and safe findAbbreviationInText
+  function findAbbreviationInText(abbr, text) {
+    if (!abbr || !text) return null;
+    const cleanAbbr = abbr.replace(/[^\w]/g, '');
+    if (!cleanAbbr) return null;
+    const escaped = cleanAbbr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    // Look for "full form (ABBR)" pattern
+    const abbrPattern = new RegExp(`([^()]*?)\\s*\\(\\s*${escaped}\\s*\\)`, 'i');
+    const match = text.match(abbrPattern);
+    if (match) return match[0];
+    // Look for "ABBR (full form)" pattern
+    const reversePattern = new RegExp(`${escaped}\\s*\\(([^()]*)\\)`, 'i');
+    const reverseMatch = text.match(reversePattern);
+    if (reverseMatch) return reverseMatch[0];
+    return null;
+  }
+
+  function areEquivalent(str1, str2) {
+    if (str1 === str2) return true;
+    
+    const cleanStr1 = str1.trim();
+    const cleanStr2 = str2.trim();
+    
+    // Check for explicit abbreviation patterns
+    if (findAbbreviationInText(cleanStr1, cleanStr2) || findAbbreviationInText(cleanStr2, cleanStr1)) {
+      return true;
+    }
+    
+    // Only check simple abbreviation if one is much shorter and looks like an abbreviation
+    if (Math.abs(cleanStr1.length - cleanStr2.length) > 5) {
+      const shorter = cleanStr1.length < cleanStr2.length ? cleanStr1 : cleanStr2;
+      const longer = cleanStr1.length < cleanStr2.length ? cleanStr2 : cleanStr1;
+      
+      // Must look like an abbreviation (uppercase, short)
+      if (shorter.length <= 6 && /^[A-Z][A-Z]*$/.test(shorter.replace(/[^\w]/g, ''))) {
+        return isAbbreviation(shorter, longer);
+      }
+    }
+    
+    return false;
+  }
+
+  function isAbbreviationExpansion(shortText, longText) {
+    const cleanShort = shortText.trim();
+    const cleanLong = longText.trim();
+    
+    // Must have significant length difference
+    if (Math.abs(cleanShort.length - cleanLong.length) < 10) return false;
+    
+    const shorter = cleanShort.length < cleanLong.length ? cleanShort : cleanLong;
+    const longer = cleanShort.length < cleanLong.length ? cleanLong : cleanShort;
+    
+    // Check if shorter text looks like an abbreviation and matches longer text
+    const abbrCandidate = shorter.replace(/[^\w]/g, '');
+    if (abbrCandidate.length >= 2 && abbrCandidate.length <= 6 && /^[A-Z][A-Z]*$/.test(abbrCandidate)) {
+      return isAbbreviation(abbrCandidate, longer) || findAbbreviationInText(abbrCandidate, longer) !== null;
+    }
+    
+    return false;
+  }
+
   function diffWords(oldText, newText) {
     const oWords = oldText.split(/(\s+)/);
     const nWords = newText.split(/(\s+)/);
     
-    // 使用LCS算法进行更好的diff
     const diff = computeDiff(oWords, nWords);
     const output = [];
     
@@ -265,7 +468,7 @@
       if (item.type === 'equal') {
         output.push(escapeHtml(item.value));
       } else {
-        // 创建变更组
+        // Create change group
         const groupId = `change-group-${changeGroupCounter++}`;
         let changeContent = '';
         
@@ -276,6 +479,9 @@
         } else if (item.type === 'replace') {
           changeContent += `<span class="removed" data-type="removed">${escapeHtml(item.oldValue)}</span>`;
           changeContent += `<span class="added" data-type="added">${escapeHtml(item.newValue)}</span>`;
+        } else if (item.type === 'abbreviation-expand') {
+          changeContent += `<span class="abbreviation" data-type="abbreviation">${escapeHtml(item.oldValue)}</span>`;
+          changeContent += `<span class="expansion" data-type="expansion">${escapeHtml(item.newValue)}</span>`;
         }
         
         output.push(`<span class="change-group" data-group-id="${groupId}" onclick="showMenu(event, '${groupId}')">${changeContent}</span>`);
@@ -285,57 +491,77 @@
     return output.join('');
   }
 
-  // 基于LCS的diff算法
+  // Enhanced diff algorithm with more conservative abbreviation support
   function computeDiff(oldArr, newArr) {
-    const lcs = computeLCS(oldArr, newArr);
-    const diff = [];
+    // First try without abbreviation matching to get basic alignment
+    const basicLcs = computeBasicLCS(oldArr, newArr);
     
+    // Then enhance with abbreviation matching only where it makes sense
+    const diff = [];
     let i = 0, j = 0, k = 0;
     
     while (i < oldArr.length || j < newArr.length) {
-      if (k < lcs.length && i < oldArr.length && j < newArr.length && 
-          oldArr[i] === newArr[j] && oldArr[i] === lcs[k]) {
-        // 相同的部分
+      if (k < basicLcs.length && i < oldArr.length && j < newArr.length &&
+          oldArr[i] === newArr[j]) {
+        // Exact matches first
+        diff.push({ type: 'equal', value: oldArr[i] });
+        i++;
+        j++;
+        k++;
+      } else if (i < oldArr.length && j < newArr.length && areEquivalent(oldArr[i], newArr[j])) {
+        // Abbreviation equivalents only when confident
         diff.push({ type: 'equal', value: oldArr[i] });
         i++;
         j++;
         k++;
       } else {
-        // 收集删除和插入的内容
+        // Collect deleted and inserted content
         let deletedItems = [];
         let insertedItems = [];
         
-        // 收集删除的项目
-        while (i < oldArr.length && (k >= lcs.length || oldArr[i] !== lcs[k])) {
+        // Collect deleted items
+        while (i < oldArr.length && (k >= basicLcs.length || oldArr[i] !== basicLcs[k])) {
           deletedItems.push(oldArr[i]);
           i++;
         }
         
-        // 收集插入的项目
-        while (j < newArr.length && (k >= lcs.length || newArr[j] !== lcs[k])) {
+        // Collect inserted items
+        while (j < newArr.length && (k >= basicLcs.length || newArr[j] !== basicLcs[k])) {
           insertedItems.push(newArr[j]);
           j++;
         }
         
-        // 根据情况添加diff项
+        // Check for abbreviation expansion/contraction
+        const deletedText = deletedItems.join('');
+        const insertedText = insertedItems.join('');
+        
         if (deletedItems.length > 0 && insertedItems.length > 0) {
-          // 替换
-          diff.push({
-            type: 'replace',
-            oldValue: deletedItems.join(''),
-            newValue: insertedItems.join('')
-          });
+          // Only mark as abbreviation expansion if very confident
+          if (isAbbreviationExpansion(deletedText, insertedText)) {
+            diff.push({
+              type: 'abbreviation-expand',
+              oldValue: deletedText,
+              newValue: insertedText
+            });
+          } else {
+            // Regular replace
+            diff.push({
+              type: 'replace',
+              oldValue: deletedText,
+              newValue: insertedText
+            });
+          }
         } else if (deletedItems.length > 0) {
-          // 删除
+          // Delete
           diff.push({
             type: 'delete',
-            value: deletedItems.join('')
+            value: deletedText
           });
         } else if (insertedItems.length > 0) {
-          // 插入
+          // Insert
           diff.push({
             type: 'insert',
-            value: insertedItems.join('')
+            value: insertedText
           });
         }
       }
@@ -344,13 +570,13 @@
     return diff;
   }
 
-  // 计算最长公共子序列
-  function computeLCS(arr1, arr2) {
+  // Basic LCS without abbreviation matching for stable alignment
+  function computeBasicLCS(arr1, arr2) {
     const m = arr1.length;
     const n = arr2.length;
     const dp = Array(m + 1).fill(null).map(() => Array(n + 1).fill(0));
     
-    // 填充DP表
+    // Fill DP table with exact matches only
     for (let i = 1; i <= m; i++) {
       for (let j = 1; j <= n; j++) {
         if (arr1[i - 1] === arr2[j - 1]) {
@@ -361,7 +587,7 @@
       }
     }
     
-    // 回溯构建LCS
+    // Backtrack to construct LCS
     const lcs = [];
     let i = m, j = n;
     
@@ -383,10 +609,14 @@
   function showMenu(event, groupId) {
     event.stopPropagation();
     const menu = document.getElementById('floating-menu');
-    const rect = event.target.getBoundingClientRect();
-    
+    // find the element that has the data-group-id (might be a child)
+    let target = event.target;
+    while (target && !target.dataset.groupId) {
+      target = target.parentElement;
+    }
+    if (!target) return;
     currentChangeGroup = groupId;
-    
+    const rect = target.getBoundingClientRect();
     menu.style.left = rect.left + 'px';
     menu.style.top = (rect.bottom + 5) + 'px';
     menu.style.display = 'block';
@@ -400,12 +630,23 @@
     
     const removedSpans = group.querySelectorAll('[data-type="removed"]');
     const addedSpans = group.querySelectorAll('[data-type="added"]');
+    const abbreviationSpans = group.querySelectorAll('[data-type="abbreviation"]');
+    const expansionSpans = group.querySelectorAll('[data-type="expansion"]');
     
     removedSpans.forEach(span => {
       span.className = 'deleted';
     });
     
     addedSpans.forEach(span => {
+      span.className = 'accepted';
+    });
+    
+    // For abbreviation expansions, accept the expanded form
+    abbreviationSpans.forEach(span => {
+      span.className = 'deleted';
+    });
+    
+    expansionSpans.forEach(span => {
       span.className = 'accepted';
     });
     
@@ -420,12 +661,23 @@
     
     const removedSpans = group.querySelectorAll('[data-type="removed"]');
     const addedSpans = group.querySelectorAll('[data-type="added"]');
+    const abbreviationSpans = group.querySelectorAll('[data-type="abbreviation"]');
+    const expansionSpans = group.querySelectorAll('[data-type="expansion"]');
     
     removedSpans.forEach(span => {
       span.className = 'original';
     });
     
     addedSpans.forEach(span => {
+      span.className = 'deleted';
+    });
+    
+    // For abbreviation expansions, keep the abbreviated form
+    abbreviationSpans.forEach(span => {
+      span.className = 'original';
+    });
+    
+    expansionSpans.forEach(span => {
       span.className = 'deleted';
     });
     
@@ -437,10 +689,13 @@
     pendingGroups.forEach(group => {
       const removedSpans = group.querySelectorAll('[data-type="removed"]');
       const addedSpans = group.querySelectorAll('[data-type="added"]');
+      const abbreviationSpans = group.querySelectorAll('[data-type="abbreviation"]');
+      const expansionSpans = group.querySelectorAll('[data-type="expansion"]');
       
-      // 只处理还没有被处理过的变更
-      const hasUnprocessed = [...removedSpans, ...addedSpans].some(span => 
-        span.classList.contains('removed') || span.classList.contains('added')
+      // Only handle unprocessed changes
+      const hasUnprocessed = [...removedSpans, ...addedSpans, ...abbreviationSpans, ...expansionSpans].some(span => 
+        span.classList.contains('removed') || span.classList.contains('added') || 
+        span.classList.contains('abbreviation') || span.classList.contains('expansion')
       );
       
       if (hasUnprocessed) {
@@ -455,6 +710,18 @@
             span.className = 'accepted';
           }
         });
+        
+        abbreviationSpans.forEach(span => {
+          if (span.classList.contains('abbreviation')) {
+            span.className = 'deleted';
+          }
+        });
+        
+        expansionSpans.forEach(span => {
+          if (span.classList.contains('expansion')) {
+            span.className = 'accepted';
+          }
+        });
       }
     });
   }
@@ -464,10 +731,13 @@
     pendingGroups.forEach(group => {
       const removedSpans = group.querySelectorAll('[data-type="removed"]');
       const addedSpans = group.querySelectorAll('[data-type="added"]');
+      const abbreviationSpans = group.querySelectorAll('[data-type="abbreviation"]');
+      const expansionSpans = group.querySelectorAll('[data-type="expansion"]');
       
-      // 只处理还没有被处理过的变更
-      const hasUnprocessed = [...removedSpans, ...addedSpans].some(span => 
-        span.classList.contains('removed') || span.classList.contains('added')
+      // Only handle unprocessed changes
+      const hasUnprocessed = [...removedSpans, ...addedSpans, ...abbreviationSpans, ...expansionSpans].some(span => 
+        span.classList.contains('removed') || span.classList.contains('added') || 
+        span.classList.contains('abbreviation') || span.classList.contains('expansion')
       );
       
       if (hasUnprocessed) {
@@ -479,6 +749,18 @@
         
         addedSpans.forEach(span => {
           if (span.classList.contains('added')) {
+            span.className = 'deleted';
+          }
+        });
+        
+        abbreviationSpans.forEach(span => {
+          if (span.classList.contains('abbreviation')) {
+            span.className = 'original';
+          }
+        });
+        
+        expansionSpans.forEach(span => {
+          if (span.classList.contains('expansion')) {
             span.className = 'deleted';
           }
         });
@@ -499,7 +781,7 @@
       alert('Final text copied to clipboard!');
     }).catch(err => {
       console.error('Failed to copy text: ', err);
-      // 降级方案
+      // Fallback method
       const textArea = document.createElement('textarea');
       textArea.value = textContent;
       document.body.appendChild(textArea);
@@ -518,16 +800,17 @@
         result += node.textContent;
       } else if (node.nodeType === Node.ELEMENT_NODE) {
         if (node.classList.contains('deleted')) {
-          // 跳过deleted的内容
+          // Skip deleted content
           return;
         } else if (node.classList.contains('accepted') || node.classList.contains('original')) {
-          // 包含accepted和original的内容
+          // Include accepted and original content
           result += node.textContent;
-        } else if (node.classList.contains('removed') || node.classList.contains('added')) {
-          // 跳过未处理的removed和added内容
+        } else if (node.classList.contains('removed') || node.classList.contains('added') || 
+                   node.classList.contains('abbreviation') || node.classList.contains('expansion')) {
+          // Skip unprocessed content
           return;
         } else {
-          // 递归处理其他元素
+          // Recursively process other elements
           for (let child of node.childNodes) {
             traverse(child);
           }
@@ -540,7 +823,7 @@
   }
 
   function compareTexts() {
-    changeGroupCounter = 0; // 重置计数器
+    changeGroupCounter = 0; // Reset counter
     const text1 = document.getElementById('text1').value.trim();
     const text2 = document.getElementById('text2').value.trim();
     const result = diffWords(text1, text2);
@@ -574,14 +857,14 @@
     back();
   }
 
-  // 点击其他地方隐藏菜单
+  // Hide menu when clicking elsewhere
   document.addEventListener('click', function(event) {
     if (!event.target.closest('#floating-menu') && !event.target.closest('.change-group')) {
       hideMenu();
     }
   });
 
-  // 拖放功能实现
+  // Drag and drop functionality
   function setupDropArea(dropAreaId, textareaId) {
     const dropArea = document.getElementById(dropAreaId);
     const textarea = document.getElementById(textareaId);
@@ -621,7 +904,7 @@
         const file = files[0];
         const reader = new FileReader();
         reader.onload = function(e) {
-          // 安全处理文件内容
+          // Safely handle file content
           textarea.value = e.target.result;
           updateCharCount(textareaId, textareaId === 'text1' ? 'count1' : 'count2');
         };
@@ -630,7 +913,7 @@
     }
   }
 
-  // 为两个文本框设置拖放功能
+  // Set up drag and drop for both text boxes
   setupDropArea('text1', 'text1');
   setupDropArea('text2', 'text2');
 </script>
