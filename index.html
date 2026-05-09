@@ -13,20 +13,16 @@
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       min-height: 100vh;
     }
-    
     .main-container {
       width: 95%;
       max-width: 1200px;
-      background: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(10px);
+      background: rgba(255,255,255,0.95);
       border-radius: 20px;
       padding: 30px;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.1);
     }
-    
     h2 {
       text-align: center;
-      color: #333;
       margin-bottom: 30px;
       font-size: 2.5em;
       background: linear-gradient(135deg, #667eea, #764ba2);
@@ -34,40 +30,54 @@
       -webkit-text-fill-color: transparent;
       background-clip: text;
     }
-    
     #text-container {
       width: 100%;
       display: flex;
       flex-direction: column;
       align-items: center;
     }
-    
-    textarea {
+    .ta-wrap {
+      position: relative;
       width: 95%;
-      height: 25vh;
       margin-bottom: 5px;
+    }
+    textarea {
+      display: block;
+      width: 100%;
+      height: 25vh;
       padding: 15px;
       border: 2px solid #e1e1e1;
       border-radius: 12px;
+      font-family: Arial, sans-serif;
       font-size: 16px;
       line-height: 1.5;
       resize: vertical;
+      box-sizing: border-box;
+      color: #333;
+      background: transparent;
+      position: relative;
+      z-index: 1;
+      outline: none;
       transition: border-color 0.3s ease;
     }
-    
     textarea:focus {
-      outline: none;
       border-color: #667eea;
-      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+      box-shadow: 0 0 0 3px rgba(102,126,234,0.1);
     }
-    
+    .hi-canvas {
+      position: absolute;
+      top: 0; left: 0;
+      border-radius: 12px;
+      pointer-events: none;
+      z-index: 0;
+    }
     .char-count {
       font-size: 0.9em;
       color: #666;
       margin-bottom: 15px;
       font-weight: 500;
+      width: 95%;
     }
-    
     .result {
       width: 95%;
       height: 45vh;
@@ -80,843 +90,834 @@
       padding: 20px;
       background: white;
       border-radius: 12px;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+      box-sizing: border-box;
     }
-    
-    .added {
-      background-color: #d4fcdc;
-      color: green;
-      padding: 2px 4px;
-      border-radius: 4px;
-    }
-    
-    .removed {
-      background-color: #ffd6d6;
-      color: red;
-      text-decoration: line-through;
-      padding: 2px 4px;
-      border-radius: 4px;
-    }
-    
-    .abbreviation {
-      background-color: #fff3cd;
-      color: #856404;
-      padding: 2px 4px;
-      border-radius: 4px;
-      border: 1px solid #ffeaa7;
-    }
-    
-    .expansion {
-      background-color: #e7f3ff;
-      color: #0c5460;
-      padding: 2px 4px;
-      border-radius: 4px;
-      border: 1px solid #b3d9ff;
-    }
-    
-    .deleted {
+    /* Loading overlay */
+    #loading {
       display: none;
-    }
-    
-    .accepted {
-      font-style: italic;
-      background-color: transparent;
-      color: inherit;
-      text-decoration: none;
-    }
-    
-    .original {
-      background-color: transparent;
-      color: inherit;
-    }
-    
-    .change-group {
-      display: inline;
-      cursor: pointer;
-      position: relative;
-      transition: opacity 0.2s ease;
-    }
-    
-    .change-group:hover {
-      opacity: 0.8;
-    }
-    
-    #buttons {
-      margin-top: 30px;
-      display: flex;
-      flex-wrap: wrap;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.35);
+      z-index: 2000;
+      align-items: center;
       justify-content: center;
-      gap: 15px;
-    }
-    
-    .button-group {
-      display: flex;
-      gap: 10px;
-    }
-    
-    button {
-      padding: 12px 24px;
-      font-size: 14px;
-      margin: 0;
-      background: linear-gradient(135deg, #667eea, #764ba2);
+      flex-direction: column;
+      gap: 16px;
       color: white;
-      border: none;
-      border-radius: 10px;
-      cursor: pointer;
-      white-space: nowrap;
+      font-size: 1.1em;
       font-weight: 600;
+    }
+    #loading.show { display: flex; }
+    .spinner {
+      width: 48px; height: 48px;
+      border: 5px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .added    { background-color: #d4fcdc; color: green; padding: 2px 4px; border-radius: 4px; }
+    .removed  { background-color: #ffd6d6; color: red; text-decoration: line-through; padding: 2px 4px; border-radius: 4px; }
+    .abbreviation { background-color: #fff3cd; color: #856404; padding: 2px 4px; border-radius: 4px; border: 1px solid #ffeaa7; }
+    .expansion    { background-color: #e7f3ff; color: #0c5460; padding: 2px 4px; border-radius: 4px; border: 1px solid #b3d9ff; }
+    .deleted  { display: none; }
+    .accepted { font-style: italic; background-color: transparent; color: inherit; text-decoration: none; }
+    .original { background-color: transparent; color: inherit; }
+    .change-group { display: inline; cursor: pointer; transition: opacity 0.2s ease; }
+    .change-group:hover { opacity: 0.8; }
+
+    #buttons { margin-top: 30px; display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; }
+    .button-group { display: flex; gap: 10px; }
+    button {
+      padding: 12px 24px; font-size: 14px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white; border: none; border-radius: 10px;
+      cursor: pointer; font-weight: 600;
       transition: transform 0.2s ease, box-shadow 0.2s ease;
       min-width: 120px;
     }
-    
-    button:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
-    }
-    
-    .primary-btn {
-      background: linear-gradient(135deg, #4CAF50, #45a049);
-    }
-    
-    .primary-btn:hover {
-      box-shadow: 0 8px 20px rgba(76, 175, 80, 0.3);
-    }
-    
-    .secondary-btn {
-      background: linear-gradient(135deg, #f44336, #da190b);
-    }
-    
-    .secondary-btn:hover {
-      box-shadow: 0 8px 20px rgba(244, 67, 54, 0.3);
-    }
-    
-    .info-btn {
-      background: linear-gradient(135deg, #2196F3, #1976D2);
-    }
-    
-    .info-btn:hover {
-      box-shadow: 0 8px 20px rgba(33, 150, 243, 0.3);
-    }
-    
-    .drop-area {
-      border: 2px dashed #ccc;
-      padding: 20px;
-      text-align: center;
-      margin-bottom: 10px;
-      width: 95%;
-      border-radius: 12px;
-      transition: all 0.3s ease;
-      background: rgba(255, 255, 255, 0.5);
-    }
-    
-    .drop-area.highlight {
-      border-color: #667eea;
-      background-color: rgba(102, 126, 234, 0.1);
-      transform: scale(1.02);
-    }
-    
-    /* Floating menu styles */
+    button:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(102,126,234,0.3); }
+    button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .primary-btn   { background: linear-gradient(135deg, #4CAF50, #45a049); }
+    .primary-btn:hover:not(:disabled)   { box-shadow: 0 8px 20px rgba(76,175,80,0.3); }
+    .secondary-btn { background: linear-gradient(135deg, #f44336, #da190b); }
+    .secondary-btn:hover:not(:disabled) { box-shadow: 0 8px 20px rgba(244,67,54,0.3); }
+    .info-btn      { background: linear-gradient(135deg, #2196F3, #1976D2); }
+    .info-btn:hover:not(:disabled)      { box-shadow: 0 8px 20px rgba(33,150,243,0.3); }
     #floating-menu {
-      position: absolute;
-      background: white;
-      border: 1px solid #e1e1e1;
-      border-radius: 10px;
+      position: fixed; background: white;
+      border: 1px solid #e1e1e1; border-radius: 10px;
       box-shadow: 0 10px 30px rgba(0,0,0,0.15);
-      padding: 8px;
-      display: none;
-      z-index: 1000;
+      padding: 8px; display: none; z-index: 1000;
     }
-    
     .menu-btn {
-      display: inline-flex;
+      display: inline-flex; align-items: center;
+      padding: 10px 15px; margin: 3px; border: none;
+      border-radius: 8px; cursor: pointer; font-size: 14px;
+      font-weight: 600; transition: all 0.2s ease;
+      min-width: 100px; justify-content: center;
+    }
+    .accept-btn { background: linear-gradient(135deg, #4CAF50, #45a049); color: white; }
+    .reject-btn { background: linear-gradient(135deg, #f44336, #da190b); color: white; }
+    .menu-btn .icon { margin-right: 8px; }
+    @media (max-width: 768px) {
+      .main-container { padding: 20px; width: 98%; }
+      button { width: 100%; margin-bottom: 10px; min-width: auto; }
+      .button-group { flex-direction: column; width: 100%; }
+      #buttons { flex-direction: column; align-items: center; }
+      textarea { height: 20vh; }
+      .result  { height: 35vh; }
+    }
+
+    /* ── Import panel overlay ── */
+    #import-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 3000;
       align-items: center;
-      padding: 10px 15px;
-      margin: 3px;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 14px;
-      font-weight: 600;
-      transition: all 0.2s ease;
-      min-width: 100px;
       justify-content: center;
     }
-    
-    .accept-btn {
-      background: linear-gradient(135deg, #4CAF50, #45a049);
-      color: white;
+    #import-overlay.show { display: flex; }
+    #import-panel {
+      background: white;
+      border-radius: 20px;
+      padding: 32px;
+      width: min(520px, 92vw);
+      box-shadow: 0 24px 60px rgba(0,0,0,0.25);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
     }
-    
-    .accept-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 5px 15px rgba(76, 175, 80, 0.3);
+    #import-panel h3 {
+      margin: 0;
+      font-size: 1.3em;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
     }
-    
-    .reject-btn {
-      background: linear-gradient(135deg, #f44336, #da190b);
-      color: white;
+    #import-panel .close-btn {
+      position: absolute;
+      top: 16px; right: 20px;
+      background: none; border: none;
+      font-size: 1.4em; cursor: pointer;
+      color: #888; min-width: unset; padding: 4px 8px;
+      transition: color 0.2s;
     }
-    
-    .reject-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 5px 15px rgba(244, 67, 54, 0.3);
+    #import-panel .close-btn:hover { color: #333; transform: none; box-shadow: none; }
+    /* JSON schema preview */
+    #import-panel .schema {
+      background: #f6f8ff;
+      border: 1px solid #d0d8ff;
+      border-radius: 10px;
+      padding: 14px 16px;
+      font-family: monospace;
+      font-size: 12.5px;
+      line-height: 1.6;
+      color: #334;
+      white-space: pre;
+      overflow-x: auto;
     }
-    
-    .menu-btn .icon {
-      margin-right: 8px;
-      font-weight: bold;
+    #import-panel .schema .key   { color: #667eea; }
+    #import-panel .schema .str   { color: #2a9d5c; }
+    #import-panel .schema .num   { color: #e67e22; }
+    #import-panel .schema .cmt   { color: #999; font-style: italic; }
+    /* Drop zone */
+    #drop-zone {
+      border: 2px dashed #c0c8f0;
+      border-radius: 12px;
+      padding: 28px 20px;
+      text-align: center;
+      color: #667eea;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s;
+      user-select: none;
     }
-    
-    @media (max-width: 768px) {
-      .main-container {
-        padding: 20px;
-        width: 98%;
-      }
-      
-      button {
-        width: 100%;
-        margin-bottom: 10px;
-        min-width: auto;
-      }
-      
-      .button-group {
-        flex-direction: column;
-        width: 100%;
-      }
-      
-      #buttons {
-        flex-direction: column;
-        align-items: center;
-      }
-      
-      textarea {
-        height: 20vh;
-      }
-      
-      .result {
-        height: 35vh;
-      }
+    #drop-zone.drag-over {
+      background: rgba(102,126,234,0.08);
+      border-color: #667eea;
+    }
+    #drop-zone .drop-icon { font-size: 2em; margin-bottom: 8px; }
+    #drop-zone p { margin: 4px 0 0; font-size: 0.9em; color: #888; font-weight: 400; }
+    #import-panel .or-divider {
+      display: flex; align-items: center; gap: 10px;
+      color: #aaa; font-size: 0.85em;
+    }
+    #import-panel .or-divider::before,
+    #import-panel .or-divider::after {
+      content: ''; flex: 1; height: 1px; background: #e0e0e0;
+    }
+    #import-error {
+      color: #c0392b;
+      font-size: 0.9em;
+      display: none;
+      background: #fff0f0;
+      border: 1px solid #f5c6c6;
+      border-radius: 8px;
+      padding: 8px 12px;
     }
   </style>
 </head>
 <body>
 
+<div id="loading"><div class="spinner"></div>Comparing…</div>
+
 <div class="main-container">
   <h2>Enhanced Text Compare Tool</h2>
-
   <div id="text-container">
-      <textarea id="text1" placeholder="Original text... Drag & drop text file here or paste text here"></textarea>
+    <div class="ta-wrap">
+      <canvas class="hi-canvas" id="canvas1"></canvas>
+      <textarea id="text1" placeholder="Original text… Drag & drop a text file or paste here"></textarea>
+    </div>
     <div id="count1" class="char-count">0 characters</div>
-    
-      <textarea id="text2" placeholder="Modified text... Drag & drop text file here or paste text here"></textarea>
+    <div class="ta-wrap">
+      <canvas class="hi-canvas" id="canvas2"></canvas>
+      <textarea id="text2" placeholder="Modified text… Drag & drop a text file or paste here"></textarea>
+    </div>
     <div id="count2" class="char-count">0 characters</div>
-    
     <div id="output" class="result"></div>
   </div>
-
   <div id="buttons">
     <button id="compareBtn" onclick="compareTexts()" class="primary-btn">Compare Texts</button>
-    
-    <div class="button-group" style="display: none;" id="result-buttons">
-      <button id="backBtn" onclick="back()">Back to Edit</button>
-      <button id="clearBtn" onclick="clearUI()">Clear All</button>
+    <div class="button-group" style="display:none" id="result-buttons">
+      <button onclick="back()">Back to Edit</button>
+      <button onclick="clearUI()">Clear All</button>
     </div>
-    
-    <div class="button-group" style="display: none;" id="batch-buttons">
-      <button id="accept-all-btn" onclick="acceptAllChanges()" class="primary-btn">Accept All</button>
-      <button id="reject-all-btn" onclick="rejectAllChanges()" class="secondary-btn">Reject All</button>
+    <div class="button-group" style="display:none" id="batch-buttons">
+      <button onclick="acceptAllChanges()" class="primary-btn">Accept All</button>
+      <button onclick="rejectAllChanges()" class="secondary-btn">Reject All</button>
     </div>
-    
-    <div class="button-group" style="display: none;" id="copy-button">
-      <button id="copy-final-btn" onclick="copyFinalText()" class="info-btn">Copy Final Text</button>
+    <div class="button-group" style="display:none" id="copy-button">
+      <button onclick="copyFinalText()" class="info-btn">Copy Final Text</button>
+    </div>
+    <div class="button-group" id="io-buttons">
+      <button onclick="exportJSON()" class="info-btn">Export JSON</button>
+      <button onclick="openImportPanel()">Import JSON</button>
     </div>
   </div>
 </div>
 
-<!-- Floating menu -->
+<!-- Import panel -->
+<div id="import-overlay">
+  <div id="import-panel">
+    <button class="close-btn" onclick="closeImportPanel()" title="Close">✕</button>
+    <h3>Import Session JSON</h3>
+
+    <div class="schema"><span class="cmt">// JSON structure produced by Export JSON</span>
+{
+  <span class="key">"version"</span>:    <span class="num">1</span>,                        <span class="cmt">// format version</span>
+  <span class="key">"text1"</span>:      <span class="str">"original text…"</span>,       <span class="cmt">// original box</span>
+  <span class="key">"text2"</span>:      <span class="str">"modified text…"</span>,       <span class="cmt">// modified box</span>
+  <span class="key">"highlight1"</span>: { <span class="key">"s"</span>: <span class="num">0</span>, <span class="key">"e"</span>: <span class="num">0</span> },     <span class="cmt">// frozen selection</span>
+  <span class="key">"highlight2"</span>: { <span class="key">"s"</span>: <span class="num">0</span>, <span class="key">"e"</span>: <span class="num">0</span> },
+  <span class="key">"inResultView"</span>: <span class="str">true</span>,               <span class="cmt">// was compare shown?</span>
+  <span class="key">"changes"</span>: [                          <span class="cmt">// per-change states</span>
+    { <span class="key">"id"</span>: <span class="str">"cg-0"</span>, <span class="key">"type"</span>: <span class="str">"replace"</span>,
+      <span class="key">"oldValue"</span>: <span class="str">"foo"</span>, <span class="key">"newValue"</span>: <span class="str">"bar"</span>,
+      <span class="key">"state"</span>: <span class="str">"accepted"</span> }        <span class="cmt">// accepted|rejected|pending</span>
+  ]
+}</div>
+
+    <div id="drop-zone" onclick="document.getElementById('import-file-input').click()">
+      <div class="drop-icon">📂</div>
+      <strong>Drop your JSON file here</strong>
+      <p>or click to browse</p>
+    </div>
+    <div class="or-divider">or</div>
+    <button class="info-btn" style="width:100%;justify-content:center;display:flex"
+            onclick="document.getElementById('import-file-input').click()">
+      Choose File…
+    </button>
+    <input type="file" id="import-file-input" accept=".json" style="display:none"
+           onchange="handleImportFile(event)">
+    <div id="import-error"></div>
+  </div>
+</div>
+
 <div id="floating-menu">
-  <button class="menu-btn accept-btn" onclick="acceptChange()">
-    <span class="icon">✓</span>Accept
-  </button>
-  <button class="menu-btn reject-btn" onclick="rejectChange()">
-    <span class="icon">✗</span>Reject
-  </button>
+  <button class="menu-btn accept-btn" onclick="acceptChange()"><span class="icon">✓</span>Accept</button>
+  <button class="menu-btn reject-btn"  onclick="rejectChange()"><span class="icon">✗</span>Reject</button>
 </div>
 
 <script>
-  let currentChangeGroup = null;
-  let changeGroupCounter = 0;
+'use strict';
+let currentChangeGroup = null;
+let changeGroupCounter = 0;
+const t1 = document.getElementById('text1');
+const t2 = document.getElementById('text2');
 
-  // Safely escape HTML
-  function escapeHtml(unsafe) {
-    return unsafe
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#039;");
-  }
+// ── Canvas highlight ──────────────────────────────────────────────────────
+// Uses a hidden mirror div to measure character positions — same technique
+// as the textarea-caret-position library. The mirror contains no visible
+// text (off-screen), so find-in-page is unaffected.
 
-  function updateCharCount(id, countId) {
-    const text = document.getElementById(id).value;
-    document.getElementById(countId).textContent = `${text.length} characters`;
-  }
+// ── Mirror-based caret measurement ───────────────────────────────────────
+// The mirror div is box-sizing:content-box with width = textarea's pure
+// content width (clientWidth - paddingLeft - paddingRight). This makes
+// span.offsetLeft/Top directly comparable to textarea coordinates without
+// any further adjustment for border or padding.
 
-  document.getElementById('text1').addEventListener('input', () => updateCharCount('text1', 'count1'));
-  document.getElementById('text2').addEventListener('input', () => updateCharCount('text2', 'count2'));
-  document.getElementById('text1').addEventListener('paste', () => {
-    setTimeout(() => updateCharCount('text1', 'count1'), 0);
+const FONT_PROPS = [
+  'fontFamily','fontSize','fontWeight','fontStyle','fontVariant',
+  'lineHeight','letterSpacing','wordSpacing',
+  'textTransform','textIndent','textAlign','direction',
+  'tabSize','MozTabSize',
+];
+
+let _mirror = null;
+let _mirrorTA = null; // which textarea the mirror is currently styled for
+
+function getMirror() {
+  if (_mirror) return _mirror;
+  _mirror = document.createElement('div');
+  Object.assign(_mirror.style, {
+    position:   'absolute',
+    top:        '-99999px',
+    left:       '-99999px',
+    visibility: 'hidden',
+    boxSizing:  'content-box',   // key: width = content width only
+    whiteSpace: 'pre-wrap',
+    wordWrap:   'break-word',
+    overflow:   'hidden',
+    margin:     '0',
+    padding:    '0',
+    border:     'none',
   });
-  document.getElementById('text2').addEventListener('paste', () => {
-    setTimeout(() => updateCharCount('text2', 'count2'), 0);
+  document.body.appendChild(_mirror);
+  return _mirror;
+}
+
+function syncMirrorStyle(ta) {
+  if (_mirrorTA === ta) return; // already synced
+  const mirror = getMirror();
+  const cs = getComputedStyle(ta);
+  FONT_PROPS.forEach(p => { mirror.style[p] = cs[p]; });
+  _mirrorTA = ta;
+}
+
+// Returns {top, left, height} of char at `index`, relative to the textarea
+// content-area origin (i.e. after border+padding). All measurements in CSS px.
+function caretXY(ta, index) {
+  const mirror = getMirror();
+  syncMirrorStyle(ta);
+
+  const cs = getComputedStyle(ta);
+  const padL = parseFloat(cs.paddingLeft)  || 0;
+  const padR = parseFloat(cs.paddingRight) || 0;
+  // Content width = client width (excludes border, includes padding) minus padding
+  mirror.style.width = (ta.clientWidth - padL - padR) + 'px';
+
+  mirror.innerHTML = '';
+  mirror.appendChild(document.createTextNode(ta.value.slice(0, index)));
+  const span = document.createElement('span');
+  span.textContent = ta.value[index] ?? '\u00a0';
+  mirror.appendChild(span);
+  mirror.appendChild(document.createTextNode(ta.value.slice(index + 1)));
+
+  return {
+    top:    span.offsetTop,
+    left:   span.offsetLeft,
+    height: span.offsetHeight,
+  };
+}
+
+// Draw highlight rectangles on `canvas` for the selection [start, end) in `ta`.
+// caretXY returns coords relative to the content area, so we shift by
+// border + padding to get canvas pixel coords, then subtract scroll offsets.
+function drawHighlight(ta, canvas, start, end, color) {
+  const dpr = window.devicePixelRatio || 1;
+  const W = ta.offsetWidth, H = ta.offsetHeight;
+  canvas.width  = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width  = W + 'px';
+  canvas.style.height = H + 'px';
+
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, W, H);
+  if (start >= end) return;
+
+  const cs  = getComputedStyle(ta);
+  const bL  = parseFloat(cs.borderLeftWidth) || 0;
+  const bT  = parseFloat(cs.borderTopWidth)  || 0;
+  const pL  = parseFloat(cs.paddingLeft)     || 0;
+  const pT  = parseFloat(cs.paddingTop)      || 0;
+  const pR  = parseFloat(cs.paddingRight)    || 0;
+  // Origin of content area inside the canvas
+  const ox = bL + pL;
+  const oy = bT + pT;
+  // Maximum right edge of a full-width line (content width)
+  const contentW = ta.clientWidth - pL - pR;
+
+  ctx.fillStyle = color;
+
+  const startPos = caretXY(ta, start);
+  let lineTop    = startPos.top;
+  let lineLeft   = startPos.left;
+  let lineH      = startPos.height;
+
+  const flush = (rightX) => {
+    const x = ox + lineLeft  - ta.scrollLeft;
+    const y = oy + lineTop   - ta.scrollTop;
+    const w = rightX - lineLeft;
+    if (w > 0) ctx.fillRect(x, y, w, lineH);
+  };
+
+  for (let i = start + 1; i <= end; i++) {
+    const pos = caretXY(ta, i);
+    if (i === end || pos.top > lineTop) {
+      flush(i === end ? pos.left : contentW);
+      if (i < end) { lineTop = pos.top; lineLeft = pos.left; lineH = pos.height; }
+    }
+  }
+}
+
+const frozen = { text1: {s:0,e:0}, text2: {s:0,e:0} };
+const LIVE_COLOR   = 'rgba(102,126,234,0.25)';
+const FROZEN_COLOR = 'rgba(102,126,234,0.18)';
+
+function setupHighlight(ta, canvas, taId) {
+  const countId = taId === 'text1' ? 'count1' : 'count2';
+
+  function redraw(s, e, color) {
+    // Skip if textarea is hidden (during compare view)
+    if (!ta.offsetParent && ta.closest('.ta-wrap').style.display === 'none') return;
+    drawHighlight(ta, canvas, s, e, color);
+  }
+
+  document.addEventListener('selectionchange', () => {
+    if (document.activeElement !== ta) return;
+    redraw(ta.selectionStart, ta.selectionEnd, LIVE_COLOR);
   });
 
-  // Enhanced abbreviation matching - more restrictive
-  function isAbbreviation(abbr, fullText) {
-    if (!abbr || !fullText) return false;
-    
-    // Clean abbreviation (remove punctuation, convert to uppercase)
-    const cleanAbbr = abbr.replace(/[^\w]/g, '').toUpperCase();
-    if (cleanAbbr.length < 2 || cleanAbbr.length > 8) return false; // More restrictive length
-    
-    // Must be all uppercase or mixed case to be considered an abbreviation
-    if (abbr.toLowerCase() === abbr) return false;
-    
-    // Extract words from full text (remove common words)
-    const commonWords = new Set(['A', 'AN', 'THE', 'OF', 'IN', 'AT', 'FOR', 'TO', 'WITH', 'BY', 'FROM', 'AND', 'OR', 'IS', 'ARE', 'WAS', 'WERE']);
-    const words = fullText.replace(/[^\w\s]/g, '').split(/\s+/)
-                         .filter(word => word.length > 0 && !commonWords.has(word.toUpperCase()));
-    
-    if (words.length < 2 || words.length > 6) return false; // Reasonable word count
-    
-    // Check if abbreviation matches first letters exactly
-    const firstLetters = words.map(word => word.charAt(0).toUpperCase()).join('');
-    return firstLetters === cleanAbbr;
-  }
+  ta.addEventListener('blur', () => {
+    frozen[taId] = { s: ta.selectionStart, e: ta.selectionEnd };
+    redraw(frozen[taId].s, frozen[taId].e, FROZEN_COLOR);
+  });
 
-  // Corrected and safe findAbbreviationInText
-  function findAbbreviationInText(abbr, text) {
-    if (!abbr || !text) return null;
-    const cleanAbbr = abbr.replace(/[^\w]/g, '');
-    if (!cleanAbbr) return null;
-    const escaped = cleanAbbr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    // Look for "full form (ABBR)" pattern
-    const abbrPattern = new RegExp(`([^()]*?)\\s*\\(\\s*${escaped}\\s*\\)`, 'i');
-    const match = text.match(abbrPattern);
-    if (match) return match[0];
-    // Look for "ABBR (full form)" pattern
-    const reversePattern = new RegExp(`${escaped}\\s*\\(([^()]*)\\)`, 'i');
-    const reverseMatch = text.match(reversePattern);
-    if (reverseMatch) return reverseMatch[0];
-    return null;
-  }
+  ta.addEventListener('focus', () => {
+    const f = frozen[taId];
+    redraw(f.s, f.e, LIVE_COLOR);
+  });
 
-  function areEquivalent(str1, str2) {
-    if (str1 === str2) return true;
-    
-    const cleanStr1 = str1.trim();
-    const cleanStr2 = str2.trim();
-    
-    // Check for explicit abbreviation patterns
-    if (findAbbreviationInText(cleanStr1, cleanStr2) || findAbbreviationInText(cleanStr2, cleanStr1)) {
-      return true;
+  ta.addEventListener('scroll', () => {
+    const focused = document.activeElement === ta;
+    if (focused) redraw(ta.selectionStart, ta.selectionEnd, LIVE_COLOR);
+    else { const f = frozen[taId]; redraw(f.s, f.e, FROZEN_COLOR); }
+  });
+
+  new ResizeObserver(() => {
+    const focused = document.activeElement === ta;
+    if (focused) redraw(ta.selectionStart, ta.selectionEnd, LIVE_COLOR);
+    else { const f = frozen[taId]; redraw(f.s, f.e, FROZEN_COLOR); }
+  }).observe(ta);
+
+  // char count + paste + drag-drop
+  const updateCount = () => {
+    document.getElementById(countId).textContent = `${ta.value.length} characters`;
+  };
+  ta.addEventListener('input', updateCount);
+  ta.addEventListener('paste', () => setTimeout(updateCount, 0));
+
+  ['dragenter','dragover','dragleave','drop'].forEach(ev =>
+    ta.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); }));
+  ta.addEventListener('dragenter', () => ta.style.borderColor = '#667eea');
+  ta.addEventListener('dragover',  () => ta.style.borderColor = '#667eea');
+  ta.addEventListener('dragleave', () => ta.style.borderColor = '');
+  ta.addEventListener('drop', e => {
+    ta.style.borderColor = '';
+    const file = e.dataTransfer.files[0];
+    if (!file) return;
+    new FileReader().onload = ev => { ta.value = ev.target.result; updateCount(); };
+    const fr = new FileReader();
+    fr.onload = ev => { ta.value = ev.target.result; updateCount(); };
+    fr.readAsText(file);
+  });
+}
+
+setupHighlight(t1, document.getElementById('canvas1'), 'text1');
+setupHighlight(t2, document.getElementById('canvas2'), 'text2');
+
+// ── Diff (run in async chunks to avoid blocking the UI) ───────────────────
+
+function escapeHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+          .replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+}
+
+function isAbbreviation(abbr, full) {
+  const ca = abbr.replace(/[^\w]/g,'').toUpperCase();
+  if (ca.length < 2 || ca.length > 8 || abbr.toLowerCase() === abbr) return false;
+  const skip = new Set(['A','AN','THE','OF','IN','AT','FOR','TO','WITH','BY','FROM','AND','OR','IS','ARE','WAS','WERE']);
+  const words = full.replace(/[^\w\s]/g,'').split(/\s+/).filter(w=>w&&!skip.has(w.toUpperCase()));
+  if (words.length < 2 || words.length > 6) return false;
+  return words.map(w=>w[0].toUpperCase()).join('') === ca;
+}
+function findAbbrInText(abbr, text) {
+  const c = abbr.replace(/[^\w]/g,''); if(!c) return null;
+  const e = c.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  return text.match(new RegExp(`([^()]*?)\\s*\\(\\s*${e}\\s*\\)`,'i'))
+      || text.match(new RegExp(`${e}\\s*\\(([^()]*)\\)`,'i'));
+}
+function areEquivalent(a, b) {
+  if (a===b) return true;
+  const ca=a.trim(), cb=b.trim();
+  if (findAbbrInText(ca,cb)||findAbbrInText(cb,ca)) return true;
+  if (Math.abs(ca.length-cb.length)>5) {
+    const sh=ca.length<cb.length?ca:cb, lo=ca.length<cb.length?cb:ca;
+    if (sh.length<=6&&/^[A-Z]+$/.test(sh.replace(/[^\w]/g,''))) return isAbbreviation(sh,lo);
+  }
+  return false;
+}
+function isAbbrExpansion(a, b) {
+  const ca=a.trim(), cb=b.trim();
+  if (Math.abs(ca.length-cb.length)<10) return false;
+  const sh=ca.length<cb.length?ca:cb, lo=ca.length<cb.length?cb:ca;
+  const ac=sh.replace(/[^\w]/g,'');
+  return ac.length>=2&&ac.length<=6&&/^[A-Z]+$/.test(ac)
+    &&(isAbbreviation(ac,lo)||!!findAbbrInText(ac,lo));
+}
+
+// LCS via async chunks — yields every CHUNK rows so the page stays responsive.
+// Uses Uint32Array rows for memory efficiency; no size cap so diff is always correct.
+async function computeLCS(a, b) {
+  const m=a.length, n=b.length;
+  const CHUNK = 300;
+  const dp = [];
+  for (let i=0;i<=m;i++) dp.push(new Uint32Array(n+1));
+  for (let i=1;i<=m;i++) {
+    if (i % CHUNK === 0) await new Promise(r => setTimeout(r, 0));
+    for (let j=1;j<=n;j++)
+      dp[i][j] = a[i-1]===b[j-1] ? dp[i-1][j-1]+1 : Math.max(dp[i-1][j],dp[i][j-1]);
+  }
+  const lcs=[]; let i=m,j=n;
+  while(i>0&&j>0){
+    if(a[i-1]===b[j-1]){lcs.unshift(a[i-1]);i--;j--;}
+    else if(dp[i-1][j]>dp[i][j-1])i--;else j--;
+  }
+  return lcs;
+}
+
+async function buildDiff(oldArr, newArr) {
+  const lcs = await computeLCS(oldArr, newArr);
+
+  const diff=[]; let i=0,j=0,k=0;
+  while(i<oldArr.length||j<newArr.length){
+    if(i<oldArr.length&&j<newArr.length&&oldArr[i]===newArr[j]){
+      diff.push({type:'equal',value:oldArr[i]});i++;j++;k++;
+    } else if(i<oldArr.length&&j<newArr.length&&areEquivalent(oldArr[i],newArr[j])){
+      diff.push({type:'equal',value:oldArr[i]});i++;j++;k++;
+    } else {
+      const del=[],ins=[];
+      while(i<oldArr.length&&(k>=lcs.length||oldArr[i]!==lcs[k]))del.push(oldArr[i++]);
+      while(j<newArr.length&&(k>=lcs.length||newArr[j]!==lcs[k]))ins.push(newArr[j++]);
+      const dt=del.join(''),it=ins.join('');
+      if(del.length&&ins.length)
+        diff.push(isAbbrExpansion(dt,it)?{type:'abbreviation-expand',oldValue:dt,newValue:it}:{type:'replace',oldValue:dt,newValue:it});
+      else if(del.length)diff.push({type:'delete',value:dt});
+      else if(ins.length)diff.push({type:'insert',value:it});
     }
-    
-    // Only check simple abbreviation if one is much shorter and looks like an abbreviation
-    if (Math.abs(cleanStr1.length - cleanStr2.length) > 5) {
-      const shorter = cleanStr1.length < cleanStr2.length ? cleanStr1 : cleanStr2;
-      const longer = cleanStr1.length < cleanStr2.length ? cleanStr2 : cleanStr1;
-      
-      // Must look like an abbreviation (uppercase, short)
-      if (shorter.length <= 6 && /^[A-Z][A-Z]*$/.test(shorter.replace(/[^\w]/g, ''))) {
-        return isAbbreviation(shorter, longer);
+  }
+  return diff;
+}
+
+function renderDiff(diff) {
+  return diff.map(item=>{
+    if(item.type==='equal') return escapeHtml(item.value);
+    const gid=`cg-${changeGroupCounter++}`; let inner='';
+    if(item.type==='delete')
+      inner=`<span class="removed" data-type="removed">${escapeHtml(item.value)}</span>`;
+    else if(item.type==='insert')
+      inner=`<span class="added" data-type="added">${escapeHtml(item.value)}</span>`;
+    else if(item.type==='replace')
+      inner=`<span class="removed" data-type="removed">${escapeHtml(item.oldValue)}</span>`
+           +`<span class="added" data-type="added">${escapeHtml(item.newValue)}</span>`;
+    else if(item.type==='abbreviation-expand')
+      inner=`<span class="abbreviation" data-type="abbreviation">${escapeHtml(item.oldValue)}</span>`
+           +`<span class="expansion" data-type="expansion">${escapeHtml(item.newValue)}</span>`;
+    return `<span class="change-group" data-group-id="${gid}" onclick="showMenu(event,'${gid}')">${inner}</span>`;
+  }).join('');
+}
+
+// ── Menu & accept/reject ──────────────────────────────────────────────────
+
+function showMenu(event, groupId) {
+  event.stopPropagation();
+  let t=event.target;
+  while(t&&!t.dataset.groupId)t=t.parentElement;
+  if(!t)return;
+  currentChangeGroup=groupId;
+  const menu=document.getElementById('floating-menu');
+  const rect=t.getBoundingClientRect();
+  menu.style.left=rect.left+'px';
+  menu.style.top=(rect.bottom+window.scrollY+5)+'px';
+  menu.style.display='block';
+}
+function hideMenu(){document.getElementById('floating-menu').style.display='none';currentChangeGroup=null;}
+function applyToGroup(gid,action){
+  const g=document.querySelector(`[data-group-id="${gid}"]`);if(!g)return;
+  g.querySelectorAll('[data-type="removed"]').forEach(s=>s.className=action==='accept'?'deleted':'original');
+  g.querySelectorAll('[data-type="added"]').forEach(s=>s.className=action==='accept'?'accepted':'deleted');
+  g.querySelectorAll('[data-type="abbreviation"]').forEach(s=>s.className=action==='accept'?'deleted':'original');
+  g.querySelectorAll('[data-type="expansion"]').forEach(s=>s.className=action==='accept'?'accepted':'deleted');
+}
+function acceptChange(){if(currentChangeGroup){applyToGroup(currentChangeGroup,'accept');hideMenu();}}
+function rejectChange() {if(currentChangeGroup){applyToGroup(currentChangeGroup,'reject');hideMenu();}}
+function acceptAllChanges(){document.querySelectorAll('.change-group').forEach(g=>applyToGroup(g.dataset.groupId,'accept'));}
+function rejectAllChanges(){document.querySelectorAll('.change-group').forEach(g=>applyToGroup(g.dataset.groupId,'reject'));}
+
+// ── Copy ─────────────────────────────────────────────────────────────────
+
+function extractFinalText(el){
+  let r='';
+  function walk(node){
+    if(node.nodeType===Node.TEXT_NODE){r+=node.textContent;return;}
+    if(node.nodeType!==Node.ELEMENT_NODE)return;
+    const cl=node.classList;
+    if(cl.contains('deleted'))return;
+    if(cl.contains('accepted')||cl.contains('original')){r+=node.textContent;return;}
+    if(cl.contains('removed')||cl.contains('abbreviation')){r+=node.textContent;return;}
+    if(cl.contains('added')||cl.contains('expansion'))return;
+    for(const c of node.childNodes)walk(c);
+  }
+  walk(el); return r.trim();
+}
+function copyFinalText(){
+  const text=extractFinalText(document.getElementById('output'));
+  navigator.clipboard.writeText(text).then(()=>alert('Copied!')).catch(()=>{
+    const ta=document.createElement('textarea');ta.value=text;
+    document.body.appendChild(ta);ta.select();document.execCommand('copy');
+    document.body.removeChild(ta);alert('Copied!');
+  });
+}
+
+// ── UI flow ───────────────────────────────────────────────────────────────
+
+async function compareTexts(){
+  const btn=document.getElementById('compareBtn');
+  if(btn.disabled)return;
+  btn.disabled=true;
+  document.getElementById('loading').classList.add('show');
+
+  // Yield so the loading overlay actually renders before we block
+  await new Promise(r=>setTimeout(r,30));
+
+  try {
+    changeGroupCounter=0;
+    const tokens1=t1.value.trim().split(/(\s+)/);
+    const tokens2=t2.value.trim().split(/(\s+)/);
+    const diff=await buildDiff(tokens1,tokens2);
+    document.getElementById('output').innerHTML=renderDiff(diff);
+
+    t1.closest('.ta-wrap').style.display='none';
+    t2.closest('.ta-wrap').style.display='none';
+    document.getElementById('count1').style.display='none';
+    document.getElementById('count2').style.display='none';
+    btn.style.display='none';
+    document.getElementById('result-buttons').style.display='flex';
+    document.getElementById('batch-buttons').style.display='flex';
+    document.getElementById('copy-button').style.display='flex';
+    document.getElementById('output').style.display='block';
+  } finally {
+    document.getElementById('loading').classList.remove('show');
+    btn.disabled=false;
+  }
+}
+
+function back(){
+  document.getElementById('output').innerHTML='';
+  t1.closest('.ta-wrap').style.display='';
+  t2.closest('.ta-wrap').style.display='';
+  document.getElementById('count1').style.display='';
+  document.getElementById('count2').style.display='';
+  const btn=document.getElementById('compareBtn');
+  btn.style.display='inline-block'; btn.disabled=false;
+  document.getElementById('result-buttons').style.display='none';
+  document.getElementById('batch-buttons').style.display='none';
+  document.getElementById('copy-button').style.display='none';
+  document.getElementById('output').style.display='none';
+  hideMenu();
+}
+function clearUI(){
+  t1.value=''; t2.value='';
+  document.getElementById('count1').textContent='0 characters';
+  document.getElementById('count2').textContent='0 characters';
+  back();
+}
+document.addEventListener('click',e=>{
+  if(!e.target.closest('#floating-menu')&&!e.target.closest('.change-group'))hideMenu();
+});
+
+// ── JSON export / import ──────────────────────────────────────────────────
+
+// Collect the current state of every change-group in the result view.
+// Each entry: { id, type, oldValue, newValue, state }
+// state: 'pending' | 'accepted' | 'rejected'
+function collectChangeStates() {
+  const groups = document.querySelectorAll('.change-group');
+  return Array.from(groups).map(g => {
+    const id = g.dataset.groupId;
+    // Determine type from child data-type spans
+    const removed = g.querySelector('[data-type="removed"]');
+    const added   = g.querySelector('[data-type="added"]');
+    const abbr    = g.querySelector('[data-type="abbreviation"]');
+    const exp     = g.querySelector('[data-type="expansion"]');
+
+    let type, oldValue='', newValue='';
+    if (abbr && exp) {
+      type = 'abbreviation-expand';
+      oldValue = abbr.textContent;
+      newValue = exp.textContent;
+    } else if (removed && added) {
+      type = 'replace';
+      oldValue = removed.textContent;
+      newValue = added.textContent;
+    } else if (removed) {
+      type = 'delete';
+      oldValue = removed.textContent;
+    } else if (added) {
+      type = 'insert';
+      newValue = added.textContent;
+    }
+
+    // Detect state from className of the relevant span
+    const primary = abbr || removed || added;
+    let state = 'pending';
+    if (primary) {
+      const cn = primary.className;
+      if (cn === 'deleted') state = 'rejected';   // old content deleted = change accepted
+      else if (cn === 'original') state = 'rejected'; // old kept = change rejected
+      else if (cn === 'accepted') state = 'accepted';
+      // More precise: for 'accept', removed→deleted, added→accepted
+      // For 'reject', removed→original, added→deleted
+      if (removed) {
+        const rcn = removed.className;
+        if (rcn === 'deleted') state = 'accepted';
+        else if (rcn === 'original') state = 'rejected';
+        else state = 'pending';
+      } else if (added && !removed) {
+        const acn = added.className;
+        if (acn === 'accepted') state = 'accepted';
+        else if (acn === 'deleted') state = 'rejected';
+        else state = 'pending';
+      } else if (abbr) {
+        const bcn = abbr.className;
+        if (bcn === 'deleted') state = 'accepted';
+        else if (bcn === 'original') state = 'rejected';
+        else state = 'pending';
       }
     }
-    
-    return false;
+
+    return { id, type, oldValue, newValue, state };
+  });
+}
+
+function exportJSON() {
+  const inResultView = document.getElementById('output').style.display === 'block';
+  const data = {
+    version: 1,
+    text1: t1.value,
+    text2: t2.value,
+    highlight1: frozen.text1,
+    highlight2: frozen.text2,
+    inResultView,
+    changes: inResultView ? collectChangeStates() : [],
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'compare-session.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function openImportPanel() {
+  document.getElementById('import-error').style.display = 'none';
+  document.getElementById('import-overlay').classList.add('show');
+}
+function closeImportPanel() {
+  document.getElementById('import-overlay').classList.remove('show');
+}
+
+// Drop zone drag events
+const dropZone = document.getElementById('drop-zone');
+dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', e => { dropZone.classList.remove('drag-over'); });
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) processImportFile(file);
+});
+
+// Close overlay on backdrop click
+document.getElementById('import-overlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('import-overlay')) closeImportPanel();
+});
+
+function handleImportFile(event) {
+  const file = event.target.files[0];
+  event.target.value = '';
+  if (file) processImportFile(file);
+}
+
+function showImportError(msg) {
+  const el = document.getElementById('import-error');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+async function processImportFile(file) {
+  document.getElementById('import-error').style.display = 'none';
+  let data;
+  try {
+    data = JSON.parse(await file.text());
+  } catch(e) {
+    showImportError('Could not parse file — make sure it is a valid JSON file.'); return;
+  }
+  if (!data.version || data.version !== 1) {
+    showImportError('Incompatible format (expected version 1). Was this exported by this tool?'); return;
   }
 
-  function isAbbreviationExpansion(shortText, longText) {
-    const cleanShort = shortText.trim();
-    const cleanLong = longText.trim();
-    
-    // Must have significant length difference
-    if (Math.abs(cleanShort.length - cleanLong.length) < 10) return false;
-    
-    const shorter = cleanShort.length < cleanLong.length ? cleanShort : cleanLong;
-    const longer = cleanShort.length < cleanLong.length ? cleanLong : cleanShort;
-    
-    // Check if shorter text looks like an abbreviation and matches longer text
-    const abbrCandidate = shorter.replace(/[^\w]/g, '');
-    if (abbrCandidate.length >= 2 && abbrCandidate.length <= 6 && /^[A-Z][A-Z]*$/.test(abbrCandidate)) {
-      return isAbbreviation(abbrCandidate, longer) || findAbbreviationInText(abbrCandidate, longer) !== null;
-    }
-    
-    return false;
-  }
+  closeImportPanel();
 
-  function diffWords(oldText, newText) {
-    const oWords = oldText.split(/(\s+)/);
-    const nWords = newText.split(/(\s+)/);
-    
-    const diff = computeDiff(oWords, nWords);
-    const output = [];
-    
-    for (let i = 0; i < diff.length; i++) {
-      const item = diff[i];
-      
-      if (item.type === 'equal') {
-        output.push(escapeHtml(item.value));
-      } else {
-        // Create change group
-        const groupId = `change-group-${changeGroupCounter++}`;
-        let changeContent = '';
-        
-        if (item.type === 'delete') {
-          changeContent += `<span class="removed" data-type="removed">${escapeHtml(item.value)}</span>`;
-        } else if (item.type === 'insert') {
-          changeContent += `<span class="added" data-type="added">${escapeHtml(item.value)}</span>`;
-        } else if (item.type === 'replace') {
-          changeContent += `<span class="removed" data-type="removed">${escapeHtml(item.oldValue)}</span>`;
-          changeContent += `<span class="added" data-type="added">${escapeHtml(item.newValue)}</span>`;
-        } else if (item.type === 'abbreviation-expand') {
-          changeContent += `<span class="abbreviation" data-type="abbreviation">${escapeHtml(item.oldValue)}</span>`;
-          changeContent += `<span class="expansion" data-type="expansion">${escapeHtml(item.newValue)}</span>`;
-        }
-        
-        output.push(`<span class="change-group" data-group-id="${groupId}" onclick="showMenu(event, '${groupId}')">${changeContent}</span>`);
-      }
-    }
-    
-    return output.join('');
-  }
+  // Restore text
+  t1.value = data.text1 || '';
+  t2.value = data.text2 || '';
+  document.getElementById('count1').textContent = `${t1.value.length} characters`;
+  document.getElementById('count2').textContent = `${t2.value.length} characters`;
 
-  // Enhanced diff algorithm with more conservative abbreviation support
-  function computeDiff(oldArr, newArr) {
-    // First try without abbreviation matching to get basic alignment
-    const basicLcs = computeBasicLCS(oldArr, newArr);
-    
-    // Then enhance with abbreviation matching only where it makes sense
-    const diff = [];
-    let i = 0, j = 0, k = 0;
-    
-    while (i < oldArr.length || j < newArr.length) {
-      if (k < basicLcs.length && i < oldArr.length && j < newArr.length &&
-          oldArr[i] === newArr[j]) {
-        // Exact matches first
-        diff.push({ type: 'equal', value: oldArr[i] });
-        i++;
-        j++;
-        k++;
-      } else if (i < oldArr.length && j < newArr.length && areEquivalent(oldArr[i], newArr[j])) {
-        // Abbreviation equivalents only when confident
-        diff.push({ type: 'equal', value: oldArr[i] });
-        i++;
-        j++;
-        k++;
-      } else {
-        // Collect deleted and inserted content
-        let deletedItems = [];
-        let insertedItems = [];
-        
-        // Collect deleted items
-        while (i < oldArr.length && (k >= basicLcs.length || oldArr[i] !== basicLcs[k])) {
-          deletedItems.push(oldArr[i]);
-          i++;
-        }
-        
-        // Collect inserted items
-        while (j < newArr.length && (k >= basicLcs.length || newArr[j] !== basicLcs[k])) {
-          insertedItems.push(newArr[j]);
-          j++;
-        }
-        
-        // Check for abbreviation expansion/contraction
-        const deletedText = deletedItems.join('');
-        const insertedText = insertedItems.join('');
-        
-        if (deletedItems.length > 0 && insertedItems.length > 0) {
-          // Only mark as abbreviation expansion if very confident
-          if (isAbbreviationExpansion(deletedText, insertedText)) {
-            diff.push({
-              type: 'abbreviation-expand',
-              oldValue: deletedText,
-              newValue: insertedText
-            });
-          } else {
-            // Regular replace
-            diff.push({
-              type: 'replace',
-              oldValue: deletedText,
-              newValue: insertedText
-            });
-          }
-        } else if (deletedItems.length > 0) {
-          // Delete
-          diff.push({
-            type: 'delete',
-            value: deletedText
-          });
-        } else if (insertedItems.length > 0) {
-          // Insert
-          diff.push({
-            type: 'insert',
-            value: insertedText
-          });
-        }
-      }
-    }
-    
-    return diff;
-  }
+  // Restore frozen highlights
+  if (data.highlight1) frozen.text1 = data.highlight1;
+  if (data.highlight2) frozen.text2 = data.highlight2;
 
-  // Basic LCS without abbreviation matching for stable alignment
-  function computeBasicLCS(arr1, arr2) {
-    const m = arr1.length;
-    const n = arr2.length;
-    const dp = Array(m + 1).fill(null).map(() => Array(n + 1).fill(0));
-    
-    // Fill DP table with exact matches only
-    for (let i = 1; i <= m; i++) {
-      for (let j = 1; j <= n; j++) {
-        if (arr1[i - 1] === arr2[j - 1]) {
-          dp[i][j] = dp[i - 1][j - 1] + 1;
-        } else {
-          dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
-        }
-      }
-    }
-    
-    // Backtrack to construct LCS
-    const lcs = [];
-    let i = m, j = n;
-    
-    while (i > 0 && j > 0) {
-      if (arr1[i - 1] === arr2[j - 1]) {
-        lcs.unshift(arr1[i - 1]);
-        i--;
-        j--;
-      } else if (dp[i - 1][j] > dp[i][j - 1]) {
-        i--;
-      } else {
-        j--;
-      }
-    }
-    
-    return lcs;
-  }
-
-  function showMenu(event, groupId) {
-    event.stopPropagation();
-    const menu = document.getElementById('floating-menu');
-    // find the element that has the data-group-id (might be a child)
-    let target = event.target;
-    while (target && !target.dataset.groupId) {
-      target = target.parentElement;
-    }
-    if (!target) return;
-    currentChangeGroup = groupId;
-    const rect = target.getBoundingClientRect();
-    menu.style.left = rect.left + 'px';
-    menu.style.top = (rect.bottom + 5) + 'px';
-    menu.style.display = 'block';
-  }
-
-  function acceptChange() {
-    if (!currentChangeGroup) return;
-    
-    const group = document.querySelector(`[data-group-id="${currentChangeGroup}"]`);
-    if (!group) return;
-    
-    const removedSpans = group.querySelectorAll('[data-type="removed"]');
-    const addedSpans = group.querySelectorAll('[data-type="added"]');
-    const abbreviationSpans = group.querySelectorAll('[data-type="abbreviation"]');
-    const expansionSpans = group.querySelectorAll('[data-type="expansion"]');
-    
-    removedSpans.forEach(span => {
-      span.className = 'deleted';
-    });
-    
-    addedSpans.forEach(span => {
-      span.className = 'accepted';
-    });
-    
-    // For abbreviation expansions, accept the expanded form
-    abbreviationSpans.forEach(span => {
-      span.className = 'deleted';
-    });
-    
-    expansionSpans.forEach(span => {
-      span.className = 'accepted';
-    });
-    
-    hideMenu();
-  }
-
-  function rejectChange() {
-    if (!currentChangeGroup) return;
-    
-    const group = document.querySelector(`[data-group-id="${currentChangeGroup}"]`);
-    if (!group) return;
-    
-    const removedSpans = group.querySelectorAll('[data-type="removed"]');
-    const addedSpans = group.querySelectorAll('[data-type="added"]');
-    const abbreviationSpans = group.querySelectorAll('[data-type="abbreviation"]');
-    const expansionSpans = group.querySelectorAll('[data-type="expansion"]');
-    
-    removedSpans.forEach(span => {
-      span.className = 'original';
-    });
-    
-    addedSpans.forEach(span => {
-      span.className = 'deleted';
-    });
-    
-    // For abbreviation expansions, keep the abbreviated form
-    abbreviationSpans.forEach(span => {
-      span.className = 'original';
-    });
-    
-    expansionSpans.forEach(span => {
-      span.className = 'deleted';
-    });
-    
-    hideMenu();
-  }
-
-  function acceptAllChanges() {
-    const pendingGroups = document.querySelectorAll('.change-group');
-    pendingGroups.forEach(group => {
-      const removedSpans = group.querySelectorAll('[data-type="removed"]');
-      const addedSpans = group.querySelectorAll('[data-type="added"]');
-      const abbreviationSpans = group.querySelectorAll('[data-type="abbreviation"]');
-      const expansionSpans = group.querySelectorAll('[data-type="expansion"]');
-      
-      // Only handle unprocessed changes
-      const hasUnprocessed = [...removedSpans, ...addedSpans, ...abbreviationSpans, ...expansionSpans].some(span => 
-        span.classList.contains('removed') || span.classList.contains('added') || 
-        span.classList.contains('abbreviation') || span.classList.contains('expansion')
-      );
-      
-      if (hasUnprocessed) {
-        removedSpans.forEach(span => {
-          if (span.classList.contains('removed')) {
-            span.className = 'deleted';
-          }
-        });
-        
-        addedSpans.forEach(span => {
-          if (span.classList.contains('added')) {
-            span.className = 'accepted';
-          }
-        });
-        
-        abbreviationSpans.forEach(span => {
-          if (span.classList.contains('abbreviation')) {
-            span.className = 'deleted';
-          }
-        });
-        
-        expansionSpans.forEach(span => {
-          if (span.classList.contains('expansion')) {
-            span.className = 'accepted';
-          }
-        });
-      }
-    });
-  }
-  
-  function rejectAllChanges() {
-    const pendingGroups = document.querySelectorAll('.change-group');
-    pendingGroups.forEach(group => {
-      const removedSpans = group.querySelectorAll('[data-type="removed"]');
-      const addedSpans = group.querySelectorAll('[data-type="added"]');
-      const abbreviationSpans = group.querySelectorAll('[data-type="abbreviation"]');
-      const expansionSpans = group.querySelectorAll('[data-type="expansion"]');
-      
-      // Only handle unprocessed changes
-      const hasUnprocessed = [...removedSpans, ...addedSpans, ...abbreviationSpans, ...expansionSpans].some(span => 
-        span.classList.contains('removed') || span.classList.contains('added') || 
-        span.classList.contains('abbreviation') || span.classList.contains('expansion')
-      );
-      
-      if (hasUnprocessed) {
-        removedSpans.forEach(span => {
-          if (span.classList.contains('removed')) {
-            span.className = 'original';
-          }
-        });
-        
-        addedSpans.forEach(span => {
-          if (span.classList.contains('added')) {
-            span.className = 'deleted';
-          }
-        });
-        
-        abbreviationSpans.forEach(span => {
-          if (span.classList.contains('abbreviation')) {
-            span.className = 'original';
-          }
-        });
-        
-        expansionSpans.forEach(span => {
-          if (span.classList.contains('expansion')) {
-            span.className = 'deleted';
-          }
-        });
-      }
-    });
-  }
-
-  function hideMenu() {
-    document.getElementById('floating-menu').style.display = 'none';
-    currentChangeGroup = null;
-  }
-
-  function copyFinalText() {
-    const output = document.getElementById('output');
-    const textContent = extractFinalText(output);
-    
-    navigator.clipboard.writeText(textContent).then(() => {
-      alert('Final text copied to clipboard!');
-    }).catch(err => {
-      console.error('Failed to copy text: ', err);
-      // Fallback method
-      const textArea = document.createElement('textarea');
-      textArea.value = textContent;
-      document.body.appendChild(textArea);
-      textArea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textArea);
-      alert('Final text copied to clipboard!');
-    });
-  }
-
-  function extractFinalText(element) {
-    let result = '';
-    
-    function traverse(node) {
-      if (node.nodeType === Node.TEXT_NODE) {
-        result += node.textContent;
-      } else if (node.nodeType === Node.ELEMENT_NODE) {
-        if (node.classList.contains('deleted')) {
-          // Skip deleted content
-          return;
-        } else if (node.classList.contains('accepted') || node.classList.contains('original')) {
-          // Include accepted and original content
-          result += node.textContent;
-        } else if (node.classList.contains('removed') || node.classList.contains('added') || 
-                   node.classList.contains('abbreviation') || node.classList.contains('expansion')) {
-          // Skip unprocessed content
-          return;
-        } else {
-          // Recursively process other elements
-          for (let child of node.childNodes) {
-            traverse(child);
-          }
-        }
-      }
-    }
-    
-    traverse(element);
-    return result.trim();
-  }
-
-  function compareTexts() {
-    changeGroupCounter = 0; // Reset counter
-    const text1 = document.getElementById('text1').value.trim();
-    const text2 = document.getElementById('text2').value.trim();
-    const result = diffWords(text1, text2);
-    document.getElementById('output').innerHTML = result;
-    document.getElementById('text1').style.display = 'none';
-    document.getElementById('text2').style.display = 'none';
-    document.getElementById('compareBtn').style.display = 'none';
-    document.getElementById('result-buttons').style.display = 'flex';
-    document.getElementById('batch-buttons').style.display = 'flex';
-    document.getElementById('copy-button').style.display = 'flex';
-    document.getElementById('output').style.display = 'block';
-  }
-  
-  function back() {
-    document.getElementById('output').innerHTML = '';
-    document.getElementById('text1').style.display = 'block';
-    document.getElementById('text2').style.display = 'block';
-    document.getElementById('compareBtn').style.display = 'inline-block';
-    document.getElementById('result-buttons').style.display = 'none';
-    document.getElementById('batch-buttons').style.display = 'none';
-    document.getElementById('copy-button').style.display = 'none';
-    document.getElementById('output').style.display = 'none';
-    hideMenu();
-  }
-
-  function clearUI() {
-    document.getElementById('text1').value = '';
-    document.getElementById('text2').value = '';
-    document.getElementById('count1').textContent = '0 characters';
-    document.getElementById('count2').textContent = '0 characters';
+  if (data.inResultView && data.changes && data.changes.length > 0) {
+    await compareTexts();
+    restoreChangeStates(data.changes);
+  } else {
     back();
+    const c1 = document.getElementById('canvas1');
+    const c2 = document.getElementById('canvas2');
+    const f1 = frozen.text1, f2 = frozen.text2;
+    if (f1.e > f1.s) drawHighlight(t1, c1, f1.s, f1.e, FROZEN_COLOR);
+    if (f2.e > f2.s) drawHighlight(t2, c2, f2.s, f2.e, FROZEN_COLOR);
   }
+}
 
-  // Hide menu when clicking elsewhere
-  document.addEventListener('click', function(event) {
-    if (!event.target.closest('#floating-menu') && !event.target.closest('.change-group')) {
-      hideMenu();
-    }
+function restoreChangeStates(changes) {
+  changes.forEach(({id, state}) => {
+    if (state === 'accepted') applyToGroup(id, 'accept');
+    else if (state === 'rejected') applyToGroup(id, 'reject');
+    // 'pending' → leave as-is
   });
-
-  // Drag and drop functionality
-  function setupDropArea(dropAreaId, textareaId) {
-    const dropArea = document.getElementById(dropAreaId);
-    const textarea = document.getElementById(textareaId);
-
-    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-      dropArea.addEventListener(eventName, preventDefaults, false);
-    });
-
-    function preventDefaults(e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-
-    ['dragenter', 'dragover'].forEach(eventName => {
-      dropArea.addEventListener(eventName, highlight, false);
-    });
-
-    ['dragleave', 'drop'].forEach(eventName => {
-      dropArea.addEventListener(eventName, unhighlight, false);
-    });
-
-    function highlight() {
-      dropArea.classList.add('highlight');
-    }
-
-    function unhighlight() {
-      dropArea.classList.remove('highlight');
-    }
-
-    dropArea.addEventListener('drop', handleDrop, false);
-
-    function handleDrop(e) {
-      const dt = e.dataTransfer;
-      const files = dt.files;
-      
-      if (files.length > 0) {
-        const file = files[0];
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          // Safely handle file content
-          textarea.value = e.target.result;
-          updateCharCount(textareaId, textareaId === 'text1' ? 'count1' : 'count2');
-        };
-        reader.readAsText(file);
-      }
-    }
-  }
-
-  // Set up drag and drop for both text boxes
-  setupDropArea('text1', 'text1');
-  setupDropArea('text2', 'text2');
+}
 </script>
-
 </body>
 </html>
