@@ -4,54 +4,150 @@
   <meta charset="UTF-8">
   <title>Enhanced Text Compare Tool</title>
   <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+    }
     body {
       font-family: Arial, sans-serif;
-      margin: 20px;
       display: flex;
       flex-direction: column;
       align-items: center;
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       min-height: 100vh;
+      box-sizing: border-box;
+      padding: 12px;
     }
+    /* Main container fills the full viewport height */
     .main-container {
-      width: 95%;
-      max-width: 1200px;
-      background: rgba(255,255,255,0.95);
+      width: 100%;
+      max-width: 1600px;
+      flex: 1;                   /* grow to fill body height */
+      background: rgba(255,255,255,0.97);
       border-radius: 20px;
-      padding: 30px;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+      padding: 20px 24px 16px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.12);
+      display: flex;
+      flex-direction: column;
+      box-sizing: border-box;
+      min-height: 0;
     }
     h2 {
       text-align: center;
-      margin-bottom: 30px;
-      font-size: 2.5em;
+      margin: 0 0 14px;
+      font-size: 1.8em;
+      flex-shrink: 0;
       background: linear-gradient(135deg, #667eea, #764ba2);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
     }
+    /* text-container grows to fill remaining height inside main-container */
     #text-container {
+      flex: 1;
+      min-height: 0;
       width: 100%;
       display: flex;
       flex-direction: column;
-      align-items: center;
+    }
+    /* Each textarea row stretches to fill available vertical space */
+    .ta-row {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      width: 100%;
+      margin-bottom: 2px;
     }
     .ta-wrap {
       position: relative;
-      width: 95%;
-      margin-bottom: 5px;
+      flex: 1;
+      min-width: 0;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    /* Swap button bar between the two textareas */
+    #swap-bar {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      gap: 8px;
+      margin: 3px 0;
+      flex-shrink: 0;
+    }
+    #swap-btn {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      border: 2px solid #d0d8ff;
+      background: white;
+      color: #667eea;
+      font-size: 1em;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.2s, border-color 0.2s, transform 0.3s;
+      padding: 0; min-width: unset; flex-shrink: 0;
+      box-shadow: 0 2px 8px rgba(102,126,234,0.15);
+    }
+    #swap-btn:hover:not(:disabled) {
+      background: #667eea; color: white;
+      border-color: #667eea;
+      transform: rotate(180deg);
+      box-shadow: 0 4px 12px rgba(102,126,234,0.3);
+    }
+    /* Precision slider */
+    #precision-wrap {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+      font-size: 0.8em;
+      color: #888;
+    }
+    #precision-wrap label { white-space: nowrap; }
+    #precision-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 90px;
+      height: 4px;
+      border-radius: 2px;
+      background: linear-gradient(90deg, #667eea, #764ba2);
+      outline: none;
+      cursor: pointer;
+    }
+    #precision-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      background: #667eea;
+      border: 2px solid white;
+      box-shadow: 0 1px 4px rgba(102,126,234,0.4);
+      cursor: pointer;
+    }
+    #precision-slider::-moz-range-thumb {
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      background: #667eea;
+      border: 2px solid white;
+      cursor: pointer;
+    }
+    #precision-label {
+      min-width: 38px;
+      font-weight: 600;
+      color: #667eea;
+      font-size: 0.85em;
     }
     textarea {
       display: block;
       width: 100%;
-      height: 25vh;
-      padding: 15px;
+      flex: 1;               /* fill the .ta-wrap height */
+      min-height: 80px;
+      padding: 14px;
       border: 2px solid #e1e1e1;
       border-radius: 12px;
       font-family: Arial, sans-serif;
-      font-size: 16px;
+      font-size: 15px;
       line-height: 1.5;
-      resize: vertical;
+      resize: none;          /* no manual resize — layout controls height */
       box-sizing: border-box;
       color: #333;
       background: transparent;
@@ -72,27 +168,75 @@
       z-index: 0;
     }
     .char-count {
-      font-size: 0.9em;
-      color: #666;
-      margin-bottom: 15px;
-      font-weight: 500;
-      width: 95%;
+      font-size: 0.82em;
+      color: #888;
+      padding-left: 2px;
+      flex-shrink: 0;
+    }
+    /* output-wrap: display:none collapses completely so .ta-row elements fill the space.
+       On compare, switches to flex so #output can grow inside it.              */
+    #output-wrap {
+      display: none;
+      flex: 1;
+      min-height: 0;
+      width: 100%;
+      flex-direction: column;
+    }
+    #output-wrap.visible {
+      display: flex;
     }
     .result {
-      width: 95%;
-      height: 45vh;
+      flex: 1;
+      min-height: 0;
       overflow-y: auto;
-      margin-top: 10px;
       white-space: pre-wrap;
       font-family: monospace;
-      display: none;
       border: 2px solid #e1e1e1;
-      padding: 20px;
+      padding: 18px 20px;
       background: white;
       border-radius: 12px;
       box-shadow: 0 10px 25px rgba(0,0,0,0.05);
       box-sizing: border-box;
+      width: 100%;
     }
+    /* Batch preview — fixed overlay sized/positioned to match #output via JS */
+    #preview-overlay {
+      display: none;
+      position: fixed;
+      z-index: 4000;
+      border-radius: 12px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      font-family: monospace;
+      word-break: break-word;
+      color: #333;
+      padding: 18px 20px;
+      box-sizing: border-box;
+      pointer-events: none;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+    }
+    #preview-overlay.accept-preview {
+      background: rgba(240,255,244,0.97);
+      border: 2px solid #4CAF50;
+    }
+    #preview-overlay.reject-preview {
+      background: rgba(255,242,242,0.97);
+      border: 2px solid #f44336;
+    }
+    #preview-overlay .preview-label {
+      display: block;
+      font-family: Arial, sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid rgba(0,0,0,0.08);
+      display: none;
+    }
+    #preview-overlay.accept-preview .preview-label { color: #4CAF50; }
+    #preview-overlay.reject-preview .preview-label { color: #f44336; }
     /* Loading overlay */
     #loading {
       display: none;
@@ -123,12 +267,12 @@
     .abbreviation { background-color: #fff3cd; color: #856404; padding: 2px 4px; border-radius: 4px; border: 1px solid #ffeaa7; }
     .expansion    { background-color: #e7f3ff; color: #0c5460; padding: 2px 4px; border-radius: 4px; border: 1px solid #b3d9ff; }
     .deleted  { display: none; }
-    .accepted { font-style: italic; background-color: transparent; color: inherit; text-decoration: none; }
+    .accepted { background-color: transparent; color: inherit; text-decoration: none; }
     .original { background-color: transparent; color: inherit; }
     .change-group { display: inline; cursor: pointer; transition: opacity 0.2s ease; }
     .change-group:hover { opacity: 0.8; }
 
-    #buttons { margin-top: 30px; display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; }
+    #buttons { margin-top: 12px; flex-shrink: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
     .button-group { display: flex; gap: 10px; }
     button {
       padding: 12px 24px; font-size: 14px;
@@ -163,12 +307,12 @@
     .reject-btn { background: linear-gradient(135deg, #f44336, #da190b); color: white; }
     .menu-btn .icon { margin-right: 8px; }
     @media (max-width: 768px) {
-      .main-container { padding: 20px; width: 98%; }
-      button { width: 100%; margin-bottom: 10px; min-width: auto; }
+      body { padding: 6px; }
+      .main-container { padding: 12px; }
+      button { width: 100%; margin-bottom: 8px; min-width: auto; }
       .button-group { flex-direction: column; width: 100%; }
       #buttons { flex-direction: column; align-items: center; }
-      textarea { height: 20vh; }
-      .result  { height: 35vh; }
+      #swap-btn { width: 26px; height: 26px; font-size: 0.85em; }
     }
 
     /* ── Import panel overlay ── */
@@ -271,17 +415,32 @@
 <div class="main-container">
   <h2>Enhanced Text Compare Tool</h2>
   <div id="text-container">
-    <div class="ta-wrap">
-      <canvas class="hi-canvas" id="canvas1"></canvas>
-      <textarea id="text1" placeholder="Original text… Drag & drop a text file or paste here"></textarea>
+    <div class="ta-row">
+      <div class="ta-wrap">
+        <canvas class="hi-canvas" id="canvas1"></canvas>
+        <textarea id="text1" placeholder="Original text… Drag & drop a text file or paste here"></textarea>
+      </div>
     </div>
-    <div id="count1" class="char-count">0 characters</div>
-    <div class="ta-wrap">
-      <canvas class="hi-canvas" id="canvas2"></canvas>
-      <textarea id="text2" placeholder="Modified text… Drag & drop a text file or paste here"></textarea>
+    <div id="swap-bar">
+      <span id="count1" class="char-count" style="flex:1">0 characters</span>
+      <div id="precision-wrap">
+        <label for="precision-slider">Precision</label>
+        <input type="range" id="precision-slider" min="1" max="3" step="1" value="2"
+               title="1 = character-level  2 = word-level  3 = sentence-level">
+        <span id="precision-label">Word</span>
+      </div>
+      <button id="swap-btn" onclick="swapTexts()" title="Swap original ↕ modified">⇅</button>
+      <span id="count2" class="char-count" style="flex:1;text-align:right">0 characters</span>
     </div>
-    <div id="count2" class="char-count">0 characters</div>
-    <div id="output" class="result"></div>
+    <div class="ta-row">
+      <div class="ta-wrap">
+        <canvas class="hi-canvas" id="canvas2"></canvas>
+        <textarea id="text2" placeholder="Modified text… Drag & drop a text file or paste here"></textarea>
+      </div>
+    </div>
+    <div id="output-wrap">
+      <div id="output" class="result"></div>
+    </div>
   </div>
   <div id="buttons">
     <button id="compareBtn" onclick="compareTexts()" class="primary-btn">Compare Texts</button>
@@ -290,8 +449,14 @@
       <button onclick="clearUI()">Clear All</button>
     </div>
     <div class="button-group" style="display:none" id="batch-buttons">
-      <button onclick="acceptAllChanges()" class="primary-btn">Accept All</button>
-      <button onclick="rejectAllChanges()" class="secondary-btn">Reject All</button>
+      <button id="accept-all-btn" class="primary-btn"
+              onmouseenter="showBatchPreview('accept')"
+              onmouseleave="hideBatchPreview()"
+              onclick="commitBatch('accept')">Accept All</button>
+      <button id="reject-all-btn" class="secondary-btn"
+              onmouseenter="showBatchPreview('reject')"
+              onmouseleave="hideBatchPreview()"
+              onclick="commitBatch('reject')">Reject All</button>
     </div>
     <div class="button-group" style="display:none" id="copy-button">
       <button onclick="copyFinalText()" class="info-btn">Copy Final Text</button>
@@ -302,6 +467,7 @@
     </div>
   </div>
 </div>
+
 
 <!-- Import panel -->
 <div id="import-overlay">
@@ -669,8 +835,37 @@ function applyToGroup(gid,action){
 }
 function acceptChange(){if(currentChangeGroup){applyToGroup(currentChangeGroup,'accept');hideMenu();}}
 function rejectChange() {if(currentChangeGroup){applyToGroup(currentChangeGroup,'reject');hideMenu();}}
-function acceptAllChanges(){document.querySelectorAll('.change-group').forEach(g=>applyToGroup(g.dataset.groupId,'accept'));}
-function rejectAllChanges(){document.querySelectorAll('.change-group').forEach(g=>applyToGroup(g.dataset.groupId,'reject'));}
+
+// Batch accept/reject: freeze the preview visually, then apply in background
+function commitBatch(action) {
+  // If a preview is showing, freeze it as a snapshot before DOM mutates
+  const overlay = document.getElementById('preview-overlay');
+  const output  = document.getElementById('output');
+  if (overlay.style.display !== 'none') {
+    // Clone current preview content into a static snapshot
+    const snapshot = overlay.innerHTML;
+    const snapshotClass = overlay.className;
+    // Apply real changes to DOM (invisible while overlay covers output)
+    document.querySelectorAll('.change-group').forEach(g => applyToGroup(g.dataset.groupId, action));
+    // Keep overlay visible a moment so the user sees the committed state
+    // Then fade it out to reveal the updated output
+    overlay.innerHTML = snapshot;
+    overlay.className = snapshotClass;
+    overlay.style.display = 'block';
+    overlay.style.transition = 'opacity 0.5s';
+    overlay.style.opacity = '1';
+    setTimeout(() => {
+      overlay.style.opacity = '0';
+      setTimeout(() => {
+        overlay.style.display = 'none';
+        overlay.style.opacity = '1';
+        overlay.style.transition = '';
+      }, 500);
+    }, 300);
+  } else {
+    document.querySelectorAll('.change-group').forEach(g => applyToGroup(g.dataset.groupId, action));
+  }
+}
 
 // ── Copy ─────────────────────────────────────────────────────────────────
 
@@ -710,20 +905,20 @@ async function compareTexts(){
 
   try {
     changeGroupCounter=0;
-    const tokens1=t1.value.trim().split(/(\s+)/);
-    const tokens2=t2.value.trim().split(/(\s+)/);
+    const level = document.getElementById('precision-slider').value;
+    const tokens1 = tokenize(t1.value.trim(), level);
+    const tokens2 = tokenize(t2.value.trim(), level);
     const diff=await buildDiff(tokens1,tokens2);
     document.getElementById('output').innerHTML=renderDiff(diff);
 
-    t1.closest('.ta-wrap').style.display='none';
-    t2.closest('.ta-wrap').style.display='none';
-    document.getElementById('count1').style.display='none';
-    document.getElementById('count2').style.display='none';
+    t1.closest('.ta-row').style.display='none';
+    t2.closest('.ta-row').style.display='none';
+    document.getElementById('swap-bar').style.display='none';
     btn.style.display='none';
     document.getElementById('result-buttons').style.display='flex';
     document.getElementById('batch-buttons').style.display='flex';
     document.getElementById('copy-button').style.display='flex';
-    document.getElementById('output').style.display='block';
+    document.getElementById('output-wrap').classList.add('visible');
   } finally {
     document.getElementById('loading').classList.remove('show');
     btn.disabled=false;
@@ -731,17 +926,18 @@ async function compareTexts(){
 }
 
 function back(){
+  document.getElementById('output-wrap').classList.remove('visible');
   document.getElementById('output').innerHTML='';
-  t1.closest('.ta-wrap').style.display='';
-  t2.closest('.ta-wrap').style.display='';
-  document.getElementById('count1').style.display='';
-  document.getElementById('count2').style.display='';
+  t1.closest('.ta-row').style.display='';
+  t2.closest('.ta-row').style.display='';
+  document.getElementById('swap-bar').style.display='';
   const btn=document.getElementById('compareBtn');
   btn.style.display='inline-block'; btn.disabled=false;
   document.getElementById('result-buttons').style.display='none';
   document.getElementById('batch-buttons').style.display='none';
   document.getElementById('copy-button').style.display='none';
-  document.getElementById('output').style.display='none';
+  document.getElementById('output').innerHTML='';
+  document.getElementById('output-wrap').classList.remove('visible');
   hideMenu();
 }
 function clearUI(){
@@ -753,6 +949,92 @@ function clearUI(){
 document.addEventListener('click',e=>{
   if(!e.target.closest('#floating-menu')&&!e.target.closest('.change-group'))hideMenu();
 });
+
+// ── Precision slider ─────────────────────────────────────────────────────
+const precisionSlider = document.getElementById('precision-slider');
+const precisionLabel  = document.getElementById('precision-label');
+const PRECISION_LABELS = { '1': 'Char', '2': 'Word', '3': 'Sentence' };
+
+precisionSlider.addEventListener('input', () => {
+  precisionLabel.textContent = PRECISION_LABELS[precisionSlider.value];
+});
+
+// Split text into tokens based on precision level
+function tokenize(text, level) {
+  if (level === '1') return text.split('');           // character
+  if (level === '3') return text.split(/(?<=[.!?])\s+/); // sentence
+  return text.split(/(\s+)/);                         // word (default)
+}
+
+// ── Swap texts ────────────────────────────────────────────────────────────
+function swapTexts() {
+  const v1 = t1.value, v2 = t2.value;
+  t1.value = v2; t2.value = v1;
+  document.getElementById('count1').textContent = `${t1.value.length} characters`;
+  document.getElementById('count2').textContent = `${t2.value.length} characters`;
+  // Swap frozen highlights too
+  const tmp = {...frozen.text1};
+  frozen.text1 = {...frozen.text2};
+  frozen.text2 = tmp;
+  // Redraw canvases
+  const c1 = document.getElementById('canvas1'), c2 = document.getElementById('canvas2');
+  drawHighlight(t1, c1, frozen.text1.s, frozen.text1.e, FROZEN_COLOR);
+  drawHighlight(t2, c2, frozen.text2.s, frozen.text2.e, FROZEN_COLOR);
+}
+
+// ── Batch preview overlay ─────────────────────────────────────────────────
+// Renders what the full output would look like after Accept All / Reject All
+// as an overlay that covers the output pane exactly, with a fade transition.
+
+let _previewHideTimer = null;
+
+function buildPreviewHTML(action) {
+  const output = document.getElementById('output');
+  // Clone the output DOM so we can mutate it without affecting the real thing
+  const clone = output.cloneNode(true);
+  clone.querySelectorAll('[data-type="removed"],[data-type="abbreviation"]').forEach(s => {
+    s.className = action === 'accept' ? 'deleted' : 'original';
+  });
+  clone.querySelectorAll('[data-type="added"],[data-type="expansion"]').forEach(s => {
+    s.className = action === 'accept' ? 'accepted' : 'deleted';
+  });
+  // Strip change-group click handlers (clone doesn't need them)
+  clone.querySelectorAll('.change-group').forEach(g => g.removeAttribute('onclick'));
+  return clone.innerHTML;
+}
+
+function showBatchPreview(action) {
+  clearTimeout(_previewHideTimer);
+  const overlay = document.getElementById('preview-overlay');
+  const output  = document.getElementById('output');
+  const wrap    = document.getElementById('output-wrap');
+  if (!wrap.classList.contains('visible')) return;
+
+  const label = action === 'accept'
+    ? '<span class="preview-label">✓ Preview: Accept All</span>'
+    : '<span class="preview-label">✗ Preview: Reject All</span>';
+
+  overlay.className = action === 'accept' ? 'accept-preview' : 'reject-preview';
+  overlay.innerHTML = label + buildPreviewHTML(action);
+
+  // Position and size the overlay to exactly cover #output
+  const r = output.getBoundingClientRect();
+  overlay.style.left   = r.left   + 'px';
+  overlay.style.top    = r.top    + 'px';
+  overlay.style.width  = r.width  + 'px';
+  overlay.style.height = r.height + 'px';
+  overlay.scrollTop = output.scrollTop;
+  overlay.style.opacity = '1';
+  overlay.style.transition = 'opacity 0.15s';
+  overlay.style.display = 'block';
+}
+
+function hideBatchPreview() {
+  _previewHideTimer = setTimeout(() => {
+    const overlay = document.getElementById('preview-overlay');
+    overlay.style.display = 'none';
+  }, 80);
+}
 
 // ── JSON export / import ──────────────────────────────────────────────────
 
@@ -919,5 +1201,6 @@ function restoreChangeStates(changes) {
   });
 }
 </script>
+<div id="preview-overlay"></div>
 </body>
 </html>
