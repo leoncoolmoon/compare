@@ -6,7 +6,7 @@ A self-contained, single-file HTML tool for comparing two pieces of text side by
 
 ## Getting Started
 
-No installation required. Just open `text-compare.html` in any modern browser (Chrome, Firefox, Safari, Edge).
+No installation required. Just open [`text-compare.html`](https://leoncoolmoon.github.io/compare) in any modern browser (Chrome, Firefox, Safari, Edge).
 
 ---
 
