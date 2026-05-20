@@ -8,25 +8,53 @@
       height: 100%;
       margin: 0;
     }
+    :root {
+      --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      --container-bg: rgba(255,255,255,0.97);
+      --card-bg: #fff;
+      --header-bg: #f8f9fa;
+      --text-main: #333;
+      --text-muted: #888;
+      --text-header: #444;
+      --border-color: #e1e1e1;
+      --line-num-bg: #f0f0f0;
+      --line-num-text: #999;
+      --line-num-border: #ddd;
+    }
+    body.dark-theme {
+      --bg-gradient: linear-gradient(135deg, #1a1c2c 0%, #4a192c 100%);
+      --container-bg: rgba(30,30,30,0.97);
+      --card-bg: #2d2d2d;
+      --header-bg: #383838;
+      --text-main: #e0e0e0;
+      --text-muted: #aaa;
+      --text-header: #eee;
+      --border-color: #444;
+      --line-num-bg: #333;
+      --line-num-text: #777;
+      --line-num-border: #555;
+    }
     body {
       font-family: Arial, sans-serif;
       display: flex;
       flex-direction: column;
       align-items: center;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: var(--bg-gradient);
       min-height: 100vh;
       box-sizing: border-box;
       padding: 12px;
+      color: var(--text-main);
+      transition: background 0.3s ease;
     }
     /* Main container fills the full viewport height */
     .main-container {
       width: 100%;
       max-width: 1600px;
       flex: 1;                   /* grow to fill body height */
-      background: rgba(255,255,255,0.97);
+      background: var(--container-bg);
       border-radius: 20px;
       padding: 20px 24px 16px;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.12);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.2);
       display: flex;
       flex-direction: column;
       box-sizing: border-box;
@@ -58,30 +86,37 @@
       flex-direction: column;
       min-width: 450px;
       flex: 1;
-      background: #fff;
-      border: 1px solid #e1e1e1;
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
       border-radius: 12px;
       overflow: hidden;
       position: relative;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     }
     .column-header {
       display: flex;
       align-items: center;
       gap: 10px;
       padding: 10px 14px;
-      background: #f8f9fa;
-      border-bottom: 1px solid #e1e1e1;
+      background: var(--header-bg);
+      border-bottom: 1px solid var(--border-color);
       flex-shrink: 0;
     }
     .column-title {
       font-weight: 600;
       font-size: 0.95em;
-      color: #444;
+      color: var(--text-header);
       flex: 1;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+    }
+    .source-label {
+      font-size: 0.75em;
+      color: var(--text-muted);
+      font-weight: normal;
+      margin-left: 4px;
+      font-style: italic;
     }
     .column-controls {
       display: flex;
@@ -97,14 +132,14 @@
     }
     .line-numbers {
       width: 36px;
-      background: #f0f0f0;
-      border-right: 1px solid #ddd;
+      background: var(--line-num-bg);
+      border-right: 1px solid var(--line-num-border);
       padding: 14px 4px;
       text-align: right;
       font-family: monospace;
-      font-size: 14px;
+      font-size: 15px;
       line-height: 1.5;
-      color: #999;
+      color: var(--line-num-text);
       user-select: none;
       overflow: hidden;
       box-sizing: border-box;
@@ -191,7 +226,7 @@
       line-height: 1.5;
       resize: none;          /* no manual resize — layout controls height */
       box-sizing: border-box;
-      color: #333;
+      color: var(--text-main);
       background: transparent;
       position: relative;
       z-index: 1;
@@ -228,7 +263,7 @@
       white-space: pre-wrap;
       font-family: monospace;
       padding: 14px;
-      background: white;
+      background: var(--card-bg);
       box-sizing: border-box;
       width: 100%;
       font-size: 15px;
@@ -480,7 +515,10 @@
 <div id="loading"><div class="spinner"></div>Comparing…</div>
 
 <div class="main-container">
-  <h2>Enhanced Text Compare Tool</h2>
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-shrink:0;">
+    <h2 style="margin:0;">Enhanced Text Compare Tool</h2>
+    <button id="themeToggleBtn" onclick="toggleTheme()" class="info-btn" style="min-width:auto; padding:8px 16px;">🌓 Theme</button>
+  </div>
   <div id="columns-container">
     <!-- Columns will be added here dynamically -->
   </div>
@@ -568,6 +606,10 @@ let currentChangeGroup = null;
 let changeGroupCounter = 0;
 let versions = [];
 const columnsContainer = document.getElementById('columns-container');
+
+function toggleTheme() {
+  document.body.classList.toggle('dark-theme');
+}
 
 function updateLineNumbers(v) {
   const lines = v.elements.textarea.value.split('\n').length;
@@ -717,6 +759,58 @@ function drawHighlight(ta, canvas, start, end, color) {
   }
 }
 
+function drawHighlights(ta, canvas, ranges, color) {
+  const dpr = window.devicePixelRatio || 1;
+  const W = ta.offsetWidth, H = ta.offsetHeight;
+  canvas.width  = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width  = W + 'px';
+  canvas.style.height = H + 'px';
+
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, W, H);
+
+  if (!ranges || !ranges.length) return;
+
+  const cs  = getComputedStyle(ta);
+  const bL  = parseFloat(cs.borderLeftWidth) || 0;
+  const bT  = parseFloat(cs.borderTopWidth)  || 0;
+  const pL  = parseFloat(cs.paddingLeft)     || 0;
+  const pT  = parseFloat(cs.paddingTop)      || 0;
+  const pR  = parseFloat(cs.paddingRight)    || 0;
+  const ox = bL + pL;
+  const oy = bT + pT;
+  const contentW = ta.clientWidth - pL - pR;
+
+  ctx.fillStyle = color;
+
+  ranges.forEach(range => {
+    const {s, e} = range;
+    if (s >= e) return;
+
+    const startPos = caretXY(ta, s);
+    let lineTop    = startPos.top;
+    let lineLeft   = startPos.left;
+    let lineH      = startPos.height;
+
+    const flush = (rightX, curLineTop, curLineLeft, curLineH) => {
+        const x = ox + curLineLeft  - ta.scrollLeft;
+        const y = oy + curLineTop   - ta.scrollTop;
+        const w = rightX - curLineLeft;
+        if (w > 0) ctx.fillRect(x, y, w, curLineH);
+    };
+
+    for (let i = s + 1; i <= e; i++) {
+        const pos = caretXY(ta, i);
+        if (i === e || pos.top > lineTop) {
+            flush(i === e ? pos.left : contentW, lineTop, lineLeft, lineH);
+            if (i < e) { lineTop = pos.top; lineLeft = pos.left; lineH = pos.height; }
+        }
+    }
+  });
+}
+
 const LIVE_ALPHA = 0.25;
 const FROZEN_ALPHA = 0.18;
 
@@ -730,28 +824,22 @@ function hexToRgba(hex, alpha) {
 function setupHighlight(version) {
   const ta = version.elements.textarea;
   const canvas = version.elements.canvas;
-  version.selection = { s: 0, e: 0 };
+  version.highlights = []; // Array of {s, e}
 
   function redraw() {
     if (ta.style.display === 'none' || !ta.offsetParent) return;
-    const s = (document.activeElement === ta) ? ta.selectionStart : version.selection.s;
-    const e = (document.activeElement === ta) ? ta.selectionEnd : version.selection.e;
-    const color = hexToRgba(version.elements.colorPicker.value, (document.activeElement === ta) ? LIVE_ALPHA : FROZEN_ALPHA);
-    drawHighlight(ta, canvas, s, e, color);
+    const color = hexToRgba(version.elements.colorPicker.value, FROZEN_ALPHA);
+    drawHighlights(ta, canvas, version.highlights, color);
   }
   version.redrawHighlight = redraw;
 
-  ta.addEventListener('blur', () => {
-    version.selection = { s: ta.selectionStart, e: ta.selectionEnd };
-    redraw();
-  });
+  ta.addEventListener('blur', redraw);
   ta.addEventListener('focus', redraw);
   ta.addEventListener('mouseup', redraw);
   ta.addEventListener('keyup', redraw);
   ta.addEventListener('scroll', redraw);
   ta.addEventListener('input', redraw);
 
-  // Use a dedicated selectionchange listener for this textarea only when focused
   document.addEventListener('selectionchange', () => {
     if (document.activeElement === ta) redraw();
   });
@@ -770,9 +858,11 @@ function setupHighlight(version) {
     if (!file) return;
     const fr = new FileReader();
     fr.onload = ev => {
+        version.source = file.name;
         ta.value = ev.target.result;
         updateCount(version);
         updateLineNumbers(version);
+        updateSourceLabel(version);
     };
     fr.readAsText(file);
   });
@@ -789,11 +879,16 @@ function addVersionColumn(text = '', color = '#667eea', isOriginal = false) {
 
   col.innerHTML = `
     <div class="column-header">
-      <div class="column-title">${title}</div>
+      <button class="remove-col-btn swap-col-btn" title="Swap with previous" style="color:#667eea; margin-right:4px;">⇅</button>
+      <div class="column-title" style="display:flex; align-items:center;">
+        ${title}
+        <span class="source-label"></span>
+      </div>
       <div class="column-controls">
+        <button class="remove-col-btn highlight-btn" title="Highlight selection" style="color:#4CAF50; font-size:1.4em; margin-right:4px;">🖍</button>
         <input type="checkbox" class="compare-checkbox" title="Select for comparison" ${isOriginal ? 'checked disabled' : 'checked'}>
         <input type="color" class="color-picker" value="${color}" title="Highlight color">
-        ${!isOriginal ? `<button class="remove-col-btn" title="Remove version">×</button>` : ''}
+        ${!isOriginal ? `<button class="remove-col-btn del-col-btn" title="Remove version">×</button>` : ''}
       </div>
     </div>
     <div class="column-body">
@@ -823,8 +918,12 @@ function addVersionColumn(text = '', color = '#667eea', isOriginal = false) {
       charCount: col.querySelector('.char-count'),
       compareCheckbox: col.querySelector('.compare-checkbox'),
       colorPicker: col.querySelector('.color-picker'),
-      removeBtn: col.querySelector('.remove-col-btn')
-    }
+      removeBtn: col.querySelector('.del-col-btn'),
+      swapBtn: col.querySelector('.swap-col-btn'),
+      highlightBtn: col.querySelector('.highlight-btn'),
+      sourceLabel: col.querySelector('.source-label')
+    },
+    source: 'Clipboard'
   };
 
   v.elements.textarea.value = text;
@@ -853,8 +952,40 @@ function addVersionColumn(text = '', color = '#667eea', isOriginal = false) {
     });
   }
 
+  if (v.elements.swapBtn) {
+      if (isOriginal) {
+          v.elements.swapBtn.style.display = 'none';
+      } else {
+          v.elements.swapBtn.addEventListener('click', () => {
+              const idx = versions.indexOf(v);
+              if (idx > 0) swapVersions(idx, idx - 1);
+          });
+      }
+  }
+
+  v.elements.highlightBtn.addEventListener('click', () => {
+      const ta = v.elements.textarea;
+      const s = ta.selectionStart;
+      const e = ta.selectionEnd;
+      if (s !== e) {
+          const existingIdx = v.highlights.findIndex(r => r.s === s && r.e === e);
+          if (existingIdx > -1) {
+              v.highlights.splice(existingIdx, 1);
+          } else {
+              v.highlights.push({s, e});
+          }
+          v.redrawHighlight();
+      }
+  });
+
+  v.elements.textarea.addEventListener('paste', (e) => {
+      v.source = 'Clipboard';
+      updateSourceLabel(v);
+  });
+
   versions.push(v);
   setupHighlight(v);
+  updateSourceLabel(v);
   updateCount(v);
   updateLineNumbers(v);
 }
@@ -875,6 +1006,40 @@ function removeVersionColumn(version) {
 
 function updateCount(v) {
   v.elements.charCount.textContent = `${v.elements.textarea.value.length} characters`;
+}
+
+function updateSourceLabel(v) {
+    if (v.elements.sourceLabel) {
+        v.elements.sourceLabel.textContent = ` (${v.source})`;
+    }
+}
+
+function swapVersions(idx1, idx2) {
+    const v1 = versions[idx1];
+    const v2 = versions[idx2];
+
+    // Swap text
+    const tmpText = v1.elements.textarea.value;
+    v1.elements.textarea.value = v2.elements.textarea.value;
+    v2.elements.textarea.value = tmpText;
+
+    // Swap source
+    const tmpSource = v1.source;
+    v1.source = v2.source;
+    v2.source = tmpSource;
+
+    // Swap highlights
+    const tmpHighlights = v1.highlights;
+    v1.highlights = v2.highlights;
+    v2.highlights = tmpHighlights;
+
+    // Update UI
+    [v1, v2].forEach(v => {
+        updateCount(v);
+        updateLineNumbers(v);
+        updateSourceLabel(v);
+        v.redrawHighlight();
+    });
 }
 
 // Initialize with Original and one Version
@@ -1138,8 +1303,12 @@ function clearUI(){
   if (confirm('Are you sure you want to clear all texts?')) {
     versions.forEach(v => {
       v.elements.textarea.value = '';
+      v.highlights = [];
+      v.source = 'Clipboard';
       updateCount(v);
       updateLineNumbers(v);
+      updateSourceLabel(v);
+      v.redrawHighlight();
     });
     back();
   }
@@ -1295,7 +1464,8 @@ function exportJSON() {
       text: v.elements.textarea.value,
       color: v.elements.colorPicker.value,
       isOriginal: v.isOriginal,
-      selection: v.selection,
+      highlights: v.highlights,
+      source: v.source,
       compareChecked: v.elements.compareCheckbox.checked
     })),
     inCompareMode,
@@ -1369,14 +1539,16 @@ async function processImportFile(file) {
   if (data.version === 1) {
       addVersionColumn(data.text1 || '', '#667eea', true);
       addVersionColumn(data.text2 || '', '#4CAF50', false);
-      if (data.highlight1) versions[0].selection = data.highlight1;
-      if (data.highlight2) versions[1].selection = data.highlight2;
+      if (data.highlight1) versions[0].highlights = [data.highlight1];
+      if (data.highlight2) versions[1].highlights = [data.highlight2];
   } else if (data.version === 2) {
       data.versions.forEach(vData => {
           addVersionColumn(vData.text, vData.color, vData.isOriginal);
           const v = versions[versions.length - 1];
-          v.selection = vData.selection;
+          v.highlights = vData.highlights || [];
+          v.source = vData.source || 'Clipboard';
           v.elements.compareCheckbox.checked = vData.compareChecked;
+          updateSourceLabel(v);
       });
   }
 
