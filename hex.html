@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>HexVision · 二进制深度比较工具</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            transition: background-color 0.2s ease, color 0.2s, border-color 0.2s;
+        }
+
+        /* 主题变量 (亮色默认) */
+        :root {
+            --bg-body: #f1f5f9;
+            --bg-card: #ffffff;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --border-light: #e2e8f0;
+            --panel-bg: #f8fafc;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --diff-highlight-bg: #ffedd5;
+            --diff-highlight-text: #9a3412;
+            --same-block-bg: #f1f5f9;
+            --same-block-hover: #e2e8f0;
+            --table-header: #f8fafc;
+            --offset-cell: #f9fafb;
+            --progress-bg: #cbd5e1;
+            --tooltip-bg: #1e293b;
+            --tooltip-text: #f1f5f9;
+            --btn-disabled: #94a3b8;
+        }
+        body.dark {
+            --bg-body: #0f172a;
+            --bg-card: #1e293b;
+            --text-primary: #f1f5f9;
+            --text-secondary: #cbd5e1;
+            --border-light: #334155;
+            --panel-bg: #0f172a;
+            --accent: #60a5fa;
+            --accent-hover: #3b82f6;
+            --diff-highlight-bg: #451a03;
+            --diff-highlight-text: #fdba74;
+            --same-block-bg: #334155;
+            --same-block-hover: #475569;
+            --table-header: #1e293b;
+            --offset-cell: #0f172a;
+            --progress-bg: #475569;
+            --tooltip-bg: #f8fafc;
+            --tooltip-text: #0f172a;
+            --btn-disabled: #475569;
+        }
+        /* 跟随系统 */
+        @media (prefers-color-scheme: dark) {
+            body.auto-dark {
+                --bg-body: #0f172a;
+                --bg-card: #1e293b;
+                --text-primary: #f1f5f9;
+                --text-secondary: #cbd5e1;
+                --border-light: #334155;
+                --panel-bg: #0f172a;
+                --accent: #60a5fa;
+                --accent-hover: #3b82f6;
+                --diff-highlight-bg: #451a03;
+                --diff-highlight-text: #fdba74;
+                --same-block-bg: #334155;
+                --same-block-hover: #475569;
+                --table-header: #1e293b;
+                --offset-cell: #0f172a;
+                --progress-bg: #475569;
+                --tooltip-bg: #f8fafc;
+                --tooltip-text: #0f172a;
+                --btn-disabled: #475569;
+            }
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, 'Inter', monospace;
+            background: var(--bg-body);
+            margin: 0;
+            padding: 20px;
+            color: var(--text-primary);
+        }
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: var(--bg-card);
+            border-radius: 28px;
+            box-shadow: 0 20px 35px -12px rgba(0,0,0,0.2);
+            overflow: hidden;
+            padding: 20px 24px 28px 24px;
+            border: 1px solid var(--border-light);
+        }
+        h1 {
+            font-size: 1.9rem;
+            margin: 0 0 0.25rem 0;
+            font-weight: 700;
+            background: linear-gradient(130deg, var(--accent), #8b5cf6);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .sub {
+            color: var(--text-secondary);
+            border-left: 4px solid var(--accent);
+            padding-left: 14px;
+            margin-bottom: 28px;
+            font-size: 0.9rem;
+        }
+        .top-bar {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .theme-lang {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        select, .theme-btn {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-light);
+            color: var(--text-primary);
+            padding: 6px 12px;
+            border-radius: 32px;
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+        .file-panel-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 24px;
+            margin-bottom: 28px;
+            background: var(--panel-bg);
+            padding: 20px;
+            border-radius: 24px;
+            border: 1px solid var(--border-light);
+        }
+        .file-card {
+            flex: 1;
+            min-width: 220px;
+        }
+        .file-card label {
+            font-weight: 700;
+            display: block;
+            margin-bottom: 10px;
+        }
+        .file-input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 2px solid var(--border-light);
+            border-radius: 20px;
+            background: var(--bg-card);
+            color: var(--text-primary);
+            font-size: 0.85rem;
+            cursor: pointer;
+        }
+        .file-info {
+            margin-top: 12px;
+            font-size: 0.75rem;
+            background: var(--bg-body);
+            padding: 8px 12px;
+            border-radius: 16px;
+            font-family: monospace;
+            word-break: break-word;
+        }
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        button {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-light);
+            padding: 8px 20px;
+            border-radius: 40px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            color: var(--text-primary);
+            transition: 0.2s;
+        }
+        button.primary {
+            background: var(--accent);
+            color: white;
+            border: none;
+        }
+        button.primary:hover:not(:disabled) {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+        }
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            background: var(--btn-disabled);
+        }
+        .progress-area {
+            margin: 16px 0 12px 0;
+            background: var(--panel-bg);
+            border-radius: 40px;
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        .progress-bar-bg {
+            flex: 1;
+            height: 10px;
+            background: var(--progress-bg);
+            border-radius: 20px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            width: 0%;
+            height: 100%;
+            background: var(--accent);
+            border-radius: 20px;
+            transition: width 0.1s linear;
+        }
+        .stats-badge {
+            background: var(--text-primary);
+            color: var(--bg-card);
+            padding: 4px 12px;
+            border-radius: 32px;
+            font-size: 0.75rem;
+            font-family: monospace;
+        }
+        .hex-container {
+            border-radius: 20px;
+            border: 1px solid var(--border-light);
+            overflow-x: auto;
+            background: var(--bg-card);
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+        .diff-table {
+            width: 100%;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 12.5px;
+            border-collapse: collapse;
+            min-width: 700px;
+        }
+        .diff-table th {
+            background: var(--table-header);
+            padding: 12px 8px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            border-bottom: 2px solid var(--border-light);
+            color: var(--text-primary);
+        }
+        .diff-table td {
+            padding: 5px 8px;
+            border-bottom: 1px solid var(--border-light);
+            vertical-align: top;
+        }
+        .offset-cell {
+            background: var(--offset-cell);
+            font-weight: 600;
+            text-align: right;
+            border-right: 1px solid var(--border-light);
+        }
+        .hex-cell {
+            white-space: pre-wrap;
+            word-break: break-all;
+            line-height: 1.45;
+        }
+        /* 差异高亮: 只有字体颜色+粗体, 无背景外圈 */
+        .diff-highlight {
+            color: var(--diff-highlight-text);
+            font-weight: bold;
+            background: transparent;
+            display: inline-block;
+        }
+        .diff-row {
+            background-color: rgba(249, 115, 22, 0.08);
+        }
+        .collapsed-block {
+            background: var(--same-block-bg);
+            text-align: center;
+            cursor: pointer;
+        }
+        .collapsed-block:hover {
+            background: var(--same-block-hover);
+        }
+        .expand-btn {
+            background: none;
+            border: none;
+            color: var(--accent);
+            cursor: pointer;
+            font-size: 0.75rem;
+            padding: 4px 12px;
+            border-radius: 20px;
+        }
+        .expand-btn:hover {
+            text-decoration: underline;
+        }
+        /* 悬浮tooltip */
+        .hex-tooltip {
+            position: fixed;
+            background: var(--tooltip-bg);
+            color: var(--tooltip-text);
+            padding: 8px 14px;
+            border-radius: 16px;
+            font-size: 0.8rem;
+            font-family: monospace;
+            pointer-events: none;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            white-space: pre;
+            backdrop-filter: blur(4px);
+            border: 1px solid var(--border-light);
+            max-width: 300px;
+            word-break: break-all;
+        }
+        .footer-note {
+            margin-top: 16px;
+            font-size: 0.7rem;
+            text-align: right;
+            color: var(--text-secondary);
+        }
+        .loading-placeholder {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-secondary);
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="top-bar">
+        <h1>⚡ HexVision · 二进制深度比较</h1>
+        <div class="theme-lang">
+            <select id="themeSelect">
+                <option value="light">☀️ 亮色</option>
+                <option value="dark">🌚 暗色</option>
+                <option value="auto">💻 跟随系统</option>
+            </select>
+            <select id="langSelect">
+                <option value="zh">中文</option>
+                <option value="en">English</option>
+            </select>
+        </div>
+    </div>
+    <div class="sub" id="subText">逐字节对比 · 智能折叠相同块 · 选中十六进制显示字符解码</div>
+
+    <div class="file-panel-group">
+        <div class="file-card"><label>📁 文件 A (基准)</label><input type="file" id="fileAInput" class="file-input"><div id="fileAInfo" class="file-info">等待选择</div></div>
+        <div class="file-card"><label>📁 文件 B (对比)</label><input type="file" id="fileBInput" class="file-input"><div id="fileBInfo" class="file-info">等待选择</div></div>
+    </div>
+
+    <div class="controls">
+        <div class="action-buttons">
+            <button id="compareBtn" class="primary">🔍 开始比较</button>
+            <button id="resetBtn">🔄 重置</button>
+            <button id="toggleSameBtn">📂 隐藏相同块</button>
+        </div>
+        <div class="options">
+            <span id="bytesLabel">每行字节:</span>
+            <select id="bytesPerRowSelect"><option value="16">16</option><option value="8">8</option><option value="32">32</option></select>
+            <span id="statsBadge" class="stats-badge">⚙️ 就绪</span>
+        </div>
+    </div>
+
+    <div id="progressArea" class="progress-area" style="display: none;">
+        <span>📡 比较进度</span>
+        <div class="progress-bar-bg"><div id="progressFill" class="progress-fill"></div></div>
+        <span id="progressPercent" class="progress-text">0%</span>
+    </div>
+
+    <div class="hex-container" id="hexContainer">
+        <table class="diff-table" id="diffTable">
+            <thead><tr><th style="width:85px">偏移(Offset)</th><th>文件 A 十六进制</th><th>文件 B 十六进制</th></tr></thead>
+            <tbody id="tableBody"><tr><td colspan="3" class="loading-placeholder">✨ 选择两个二进制文件，点击比较 (支持大文件，带进度条)</td></tr>
+            </tbody>
+        </table>
+    </div>
+    <div class="footer-note">💡 提示: 鼠标选中任意十六进制字符(拖拽或双击) 立即显示 ASCII/UTF-8解码 | 差异块可独立展开/收起</div>
+</div>
+
+<script>
+    // ---------- DOM 元素 ----------
+    const fileAInput = document.getElementById('fileAInput'), fileBInput = document.getElementById('fileBInput');
+    const infoA = document.getElementById('fileAInfo'), infoB = document.getElementById('fileBInfo');
+    const compareBtn = document.getElementById('compareBtn'), resetBtn = document.getElementById('resetBtn');
+    const toggleSameBtn = document.getElementById('toggleSameBtn');
+    const bytesPerRowSelect = document.getElementById('bytesPerRowSelect');
+    const statsBadge = document.getElementById('statsBadge');
+    const progressArea = document.getElementById('progressArea'), progressFill = document.getElementById('progressFill'), progressPercent = document.getElementById('progressPercent');
+    const tableBody = document.getElementById('tableBody');
+    const themeSelect = document.getElementById('themeSelect');
+    const langSelect = document.getElementById('langSelect');
+    const subText = document.getElementById('subText');
+    const bytesLabel = document.getElementById('bytesLabel');
+
+    // ---------- 全局状态 ----------
+    let fileAData = null, fileBData = null, fileALen = 0, fileBLen = 0;
+    let currentComparisonBlocks = [];      // 块结构 {type, start, end, rows}
+    let currentHideSame = false;            // 默认显示相同块
+    let currentBytesPerRow = 16;
+    let diffBlocksCollapsed = new Map();    // 差异块独立折叠状态 key: `${start}_${end}`
+    let isComparing = false;                // 防重复标志
+    let currentLang = 'zh';
+
+    // ---------- i18n 文本库 ----------
+    const locales = {
+        zh: { 
+            waitSelect: '等待选择', loading: '加载中...', ready: '就绪', compareDone: '比较完成', 
+            diffBlocks: '差异块数量', bytesLabel: '每行字节:', sameHide: '隐藏相同块', sameShow: '显示相同块', 
+            expand: '展开查看', collapse: '收起', sameDataBlock: '相同数据块', diffBlockLabel: '差异块', 
+            totalBytes: '总字节', diffBytes: '差异字节', resetDone: '已重置', selectTwoFiles: '请先选择两个二进制文件', 
+            processing: '正在分块分析大文件，请稍候...', compareError: '比较失败，请重试', 
+            collapseBlock: '收起此差异块', comparing: '比较中...', diffCount: '差异数量' 
+        },
+        en: { 
+            waitSelect: 'Waiting', loading: 'loading...', ready: 'Ready', compareDone: 'Comparison complete', 
+            diffBlocks: 'Diff blocks', bytesLabel: 'Bytes/row:', sameHide: 'Hide identical', sameShow: 'Show identical', 
+            expand: 'Expand', collapse: 'Collapse', sameDataBlock: 'Identical block', diffBlockLabel: 'Diff block', 
+            totalBytes: 'Total bytes', diffBytes: 'Diff bytes', resetDone: 'Reset', selectTwoFiles: 'Please select two binary files', 
+            processing: 'Processing chunks, please wait...', compareError: 'Comparison failed', 
+            collapseBlock: 'Collapse this diff block', comparing: 'Comparing...', diffCount: 'Diff count' 
+        }
+    };
+    
+    function t(key) { return locales[currentLang][key] || key; }
+    
+    function updateUItexts() {
+        bytesLabel.innerText = t('bytesLabel');
+        toggleSameBtn.innerText = currentHideSame ? t('sameShow') : t('sameHide');
+        subText.innerHTML = currentLang === 'zh' ? '逐字节对比 · 智能折叠相同块 · 选中十六进制显示字符解码' : 'Byte by byte · Smart fold identical blocks · Select hex to decode';
+        if (statsBadge.innerText.includes('就绪') || statsBadge.innerText.includes('Ready') || statsBadge.innerText === '⚙️ 就绪') {
+            statsBadge.innerText = t('ready');
+        }
+        if (currentComparisonBlocks.length) {
+            renderComparison(currentHideSame, currentBytesPerRow);
+        }
+    }
+    
+    // 主题管理
+    function setTheme(theme) {
+        document.body.classList.remove('dark', 'auto-dark');
+        if (theme === 'dark') document.body.classList.add('dark');
+        else if (theme === 'auto') { document.body.classList.add('auto-dark'); }
+        else document.body.classList.remove('dark', 'auto-dark');
+        localStorage.setItem('hexTheme', theme);
+    }
+    
+    // 初始化主题和语言
+    const savedTheme = localStorage.getItem('hexTheme') || 'light';
+    themeSelect.value = savedTheme;
+    setTheme(savedTheme);
+    themeSelect.onchange = () => setTheme(themeSelect.value);
+    
+    // 检测系统语言或本地存储
+    const savedLang = localStorage.getItem('hexLang');
+    if (savedLang && (savedLang === 'zh' || savedLang === 'en')) {
+        currentLang = savedLang;
+    } else {
+        currentLang = navigator.language.startsWith('zh') ? 'zh' : 'en';
+    }
+    langSelect.value = currentLang;
+    langSelect.onchange = () => { 
+        currentLang = langSelect.value; 
+        localStorage.setItem('hexLang', currentLang);
+        updateUItexts(); 
+    };
+    
+    // 工具函数
+    function formatBytes(b) { 
+        if (b === 0) return '0 B'; 
+        const k = 1024, sizes = ['B', 'KB', 'MB']; 
+        const i = Math.floor(Math.log(b) / Math.log(k)); 
+        return parseFloat((b / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]; 
+    }
+    
+    function showMessage(msg, isErr = false) { 
+        statsBadge.innerText = msg.slice(0, 48); 
+        statsBadge.style.background = isErr ? '#b91c1c' : 'var(--text-primary)'; 
+        setTimeout(() => { 
+            if (statsBadge.innerText === msg.slice(0, 48)) 
+                statsBadge.innerText = t('ready'); 
+        }, 3000); 
+    }
+    
+    async function readFileAsUint8(file) { 
+        return new Promise((resolve, reject) => { 
+            const reader = new FileReader(); 
+            reader.onload = e => resolve(new Uint8Array(e.target.result)); 
+            reader.onerror = reject; 
+            reader.readAsArrayBuffer(file); 
+        }); 
+    }
+    
+    // 文件选择事件
+    fileAInput.onchange = async (e) => { 
+        const f = e.target.files[0]; 
+        if (f) { 
+            infoA.innerText = `${f.name} (${formatBytes(f.size)}) ${t('loading')}`; 
+            try { 
+                fileAData = await readFileAsUint8(f); 
+                fileALen = fileAData.length; 
+                infoA.innerText = `${f.name} (${formatBytes(fileALen)})`; 
+            } catch(err) { 
+                infoA.innerText = '读取失败'; 
+                fileAData = null; 
+            } 
+        } else { 
+            fileAData = null; 
+            infoA.innerText = t('waitSelect'); 
+        } 
+    };
+    
+    fileBInput.onchange = async (e) => { 
+        const f = e.target.files[0]; 
+        if (f) { 
+            infoB.innerText = `${f.name} (${formatBytes(f.size)}) ${t('loading')}`; 
+            try { 
+                fileBData = await readFileAsUint8(f); 
+                fileBLen = fileBData.length; 
+                infoB.innerText = `${f.name} (${formatBytes(fileBLen)})`; 
+            } catch(err) { 
+                infoB.innerText = '读取失败'; 
+                fileBData = null; 
+            } 
+        } else { 
+            fileBData = null; 
+            infoB.innerText = t('waitSelect'); 
+        } 
+    };
+    
+    resetBtn.onclick = () => { 
+        fileAInput.value = ''; fileBInput.value = ''; 
+        fileAData = null; fileBData = null; 
+        infoA.innerText = t('waitSelect'); 
+        infoB.innerText = t('waitSelect'); 
+        tableBody.innerHTML = `<tr><td colspan="3" class="loading-placeholder">📁 ${t('resetDone')}</td></tr>`;
+        currentComparisonBlocks = []; 
+        diffBlocksCollapsed.clear(); 
+        statsBadge.innerText = t('ready'); 
+        progressArea.style.display = 'none';
+        if (isComparing) isComparing = false;
+        compareBtn.disabled = false;
+        compareBtn.innerText = '🔍 开始比较';
+    };
+    
+    // 生成差异块内的行数据
+    function generateRowsForRange(bytesA, bytesB, start, end, rowLen) {
+        const rows = []; 
+        let offset = start;
+        const lenA = bytesA.length, lenB = bytesB.length;
+        while (offset < end) {
+            const rowStart = offset, rowEnd = Math.min(offset + rowLen, end);
+            const cellsA = [], cellsB = [];
+            let hasDiff = false;
+            for (let j = rowStart; j < rowEnd; j++) {
+                const byteA = j < lenA ? bytesA[j] : null;
+                const byteB = j < lenB ? bytesB[j] : null;
+                const hexA = byteA !== null ? byteA.toString(16).padStart(2, '0').toUpperCase() : '??';
+                const hexB = byteB !== null ? byteB.toString(16).padStart(2, '0').toUpperCase() : '??';
+                const isDiff = (byteA !== byteB) && (byteA !== null && byteB !== null);
+                if (isDiff) hasDiff = true;
+                cellsA.push({ val: hexA, diff: isDiff, raw: byteA });
+                cellsB.push({ val: hexB, diff: isDiff, raw: byteB });
+            }
+            rows.push({ offset: rowStart, cellsA, cellsB, hasDiff, rowLen: rowEnd - rowStart });
+            offset = rowEnd;
+        }
+        return rows;
+    }
+    
+    // 构建块 (相同/差异)
+    async function buildComparisonBlocks(bytesA, bytesB, rowLen, onProgress) {
+        const lenA = bytesA.length, lenB = bytesB.length, maxLen = Math.max(lenA, lenB);
+        let processed = 0, i = 0;
+        const blocks = [];
+        const report = () => { if (onProgress) onProgress(processed / maxLen); };
+        while (i < maxLen) {
+            let sameStart = i;
+            while (i < maxLen) {
+                const byteA = i < lenA ? bytesA[i] : null;
+                const byteB = i < lenB ? bytesB[i] : null;
+                if (byteA !== byteB) break;
+                i++; processed++; if (processed % 8192 === 0) report();
+            }
+            if (i > sameStart) { 
+                blocks.push({ type: 'same', start: sameStart, end: i, rows: null }); 
+                if (i >= maxLen) break; 
+            }
+            let diffStart = i;
+            while (i < maxLen) {
+                const byteA = i < lenA ? bytesA[i] : null;
+                const byteB = i < lenB ? bytesB[i] : null;
+                if (byteA === byteB) break;
+                i++; processed++; if (processed % 8192 === 0) report();
+            }
+            if (i > diffStart) blocks.push({ type: 'diff', start: diffStart, end: i, rows: null });
+            report();
+        }
+        // 只为差异块生成详细行数据
+        for (let blk of blocks) if (blk.type === 'diff') {
+            blk.rows = generateRowsForRange(bytesA, bytesB, blk.start, blk.end, rowLen);
+        }
+        return blocks;
+    }
+    
+    // 渲染主函数
+    function renderComparison(hideSame, bytesPerRow) {
+        if (!currentComparisonBlocks.length) { 
+            tableBody.innerHTML = `<tr><td colspan="3" class="loading-placeholder">⚙️ ${t('selectTwoFiles')}</td></tr>`; 
+            return; 
+        }
+        let html = '';
+        for (let block of currentComparisonBlocks) {
+            const blockKey = `diff_${block.start}_${block.end}`;
+            if (block.type === 'same') {
+                if (hideSame) continue;
+                const size = block.end - block.start;
+                html += `<tr class="collapsed-block" data-start="${block.start}" data-end="${block.end}" data-type="same" data-block-idx="${block.start}_${block.end}">
+                            <td colspan="3" style="text-align:center; padding: 8px;">
+                                📘 ${t('sameDataBlock')} [0x${block.start.toString(16).toUpperCase()} - 0x${(block.end-1).toString(16).toUpperCase()}] (${size} ${t('totalBytes')})
+                                <button class="expand-btn" data-action="expandSame" data-start="${block.start}" data-end="${block.end}">➕ ${t('expand')}</button>
+                              </td>
+                          </tr>`;
+                continue;
+            }
+            // 差异块
+            const isCollapsed = diffBlocksCollapsed.get(blockKey) || false;
+            if (isCollapsed) {
+                const size = block.end - block.start;
+                html += `<tr class="collapsed-block diff-collapsed" data-start="${block.start}" data-end="${block.end}" data-type="diff">
+                            <td colspan="3" style="text-align:center; padding: 8px; background: var(--diff-highlight-bg); opacity:0.9;">
+                                🔥 ${t('diffBlockLabel')} [0x${block.start.toString(16)} - 0x${(block.end-1).toString(16)}] (${size} ${t('diffBytes')})
+                                <button class="expand-btn" data-action="expandDiff" data-start="${block.start}" data-end="${block.end}">🔽 ${t('expand')}</button>
+                              </td>
+                          </tr>`;
+            } else {
+                const rows = block.rows;
+                if (rows) for (let row of rows) {
+                    const offsetHex = '0x' + row.offset.toString(16).toUpperCase().padStart(8, '0');
+                    let aHtml = '', bHtml = '';
+                    for (let idx = 0; idx < row.cellsA.length; idx++) {
+                        const ca = row.cellsA[idx], cb = row.cellsB[idx];
+                        const spanA = ca.diff ? `<span class="diff-highlight" data-raw="${ca.raw !== null ? ca.raw : ''}" data-hex="${ca.val}">${ca.val}</span>` : `<span data-raw="${ca.raw !== null ? ca.raw : ''}" data-hex="${ca.val}">${ca.val}</span>`;
+                        const spanB = cb.diff ? `<span class="diff-highlight" data-raw="${cb.raw !== null ? cb.raw : ''}" data-hex="${cb.val}">${cb.val}</span>` : `<span data-raw="${cb.raw !== null ? cb.raw : ''}" data-hex="${cb.val}">${cb.val}</span>`;
+                        aHtml += spanA; bHtml += spanB;
+                        if ((idx + 1) % 4 === 0 && idx + 1 !== row.cellsA.length) { aHtml += ' '; bHtml += ' '; }
+                        else if (idx + 1 !== row.cellsA.length) { aHtml += ' '; bHtml += ' '; }
+                    }
+                    html += `<tr class="${row.hasDiff ? 'diff-row' : ''}"><td class="offset-cell">${offsetHex}</td><td class="hex-cell">${aHtml}</td><td class="hex-cell">${bHtml}</td></tr>`;
+                }
+                html += `<tr style="background:var(--panel-bg);"><td colspan="3" style="text-align:center; padding: 4px;">
+                            <button class="expand-btn" data-action="collapseDiff" data-start="${block.start}" data-end="${block.end}">📁 ${t('collapseBlock')}</button>
+                          </td></tr>`;
+            }
+        }
+        if (html === '') html = `<tr><td colspan="3" class="loading-placeholder">✨ 完全一致且隐藏相同块</td></tr>`;
+        tableBody.innerHTML = html;
+        
+        // 重新绑定动态按钮
+        document.querySelectorAll('[data-action="expandSame"]').forEach(btn => {
+            btn.onclick = (e) => { e.stopPropagation(); const start = parseInt(btn.dataset.start), end = parseInt(btn.dataset.end); expandSameBlock(start, end); };
+        });
+        document.querySelectorAll('[data-action="expandDiff"]').forEach(btn => {
+            btn.onclick = (e) => { e.stopPropagation(); const start = parseInt(btn.dataset.start), end = parseInt(btn.dataset.end); const key = `diff_${start}_${end}`; diffBlocksCollapsed.delete(key); renderComparison(currentHideSame, currentBytesPerRow); };
+        });
+        document.querySelectorAll('[data-action="collapseDiff"]').forEach(btn => {
+            btn.onclick = (e) => { e.stopPropagation(); const start = parseInt(btn.dataset.start), end = parseInt(btn.dataset.end); const key = `diff_${start}_${end}`; diffBlocksCollapsed.set(key, true); renderComparison(currentHideSame, currentBytesPerRow); };
+        });
+        
+        // 统计
+        const totalDiff = currentComparisonBlocks.filter(b => b.type === 'diff').reduce((s, b) => s + (b.end - b.start), 0);
+        const totalBytes = Math.max(fileALen, fileBLen);
+        statsBadge.innerText = `📊 ${t('diffBytes')}: ${totalDiff} / ${totalBytes} (${totalBytes ? ((totalDiff / totalBytes) * 100).toFixed(2) : 0}%)`;
+    }
+    
+    // 展开相同块 - 修复版：使用唯一的标识符来管理展开区域，收起时只删除自己展开的行
+    function expandSameBlock(start, end) {
+        if (!fileAData || !fileBData) return;
+        const rowsData = generateRowsForRange(fileAData, fileBData, start, end, currentBytesPerRow);
+        let innerHtml = '';
+        for (let row of rowsData) {
+            const offsetHex = '0x' + row.offset.toString(16).toUpperCase().padStart(8, '0');
+            let aHtml = '', bHtml = '';
+            for (let idx = 0; idx < row.cellsA.length; idx++) {
+                const ca = row.cellsA[idx], cb = row.cellsB[idx];
+                aHtml += `<span>${ca.val}</span>`; bHtml += `<span>${cb.val}</span>`;
+                if ((idx + 1) % 4 === 0 && idx + 1 !== row.cellsA.length) { aHtml += ' '; bHtml += ' '; }
+            }
+            innerHtml += `<tr class="expanded-same-row" data-parent-same="${start}_${end}"><td class="offset-cell">${offsetHex}</td><td class="hex-cell">${aHtml}</td><td class="hex-cell">${bHtml}</td></tr>`;
+        }
+        
+        const foldRow = document.querySelector(`tr.collapsed-block[data-start="${start}"][data-end="${end}"][data-type="same"]`);
+        if (foldRow) {
+            // 创建展开后的头部行（带收起按钮）
+            const headerRow = document.createElement('tr');
+            headerRow.className = 'expanded-same-header';
+            headerRow.setAttribute('data-parent-same', `${start}_${end}`);
+            headerRow.innerHTML = `<td colspan="3" style="text-align:center; background:var(--same-block-hover); padding: 8px;">
+                🔽 ${t('sameDataBlock')} [0x${start.toString(16)}-0x${(end-1).toString(16)}] 
+                <button class="expand-btn collapse-same-btn" data-start="${start}" data-end="${end}">📁 ${t('collapse')}</button>
+              </td>`;
+            
+            // 创建所有展开行的 DOM 元素
+            const tempContainer = document.createElement('tbody');
+            tempContainer.innerHTML = innerHtml;
+            const expandedRows = Array.from(tempContainer.children);
+            
+            const parent = foldRow.parentNode;
+            const idx = Array.from(parent.children).indexOf(foldRow);
+            
+            // 替换折叠行为展开头部行
+            parent.replaceChild(headerRow, foldRow);
+            
+            // 在头部行后面插入所有展开的数据行
+            let insertPos = idx + 1;
+            for (let i = 0; i < expandedRows.length; i++) {
+                if (insertPos <= parent.children.length) {
+                    parent.insertBefore(expandedRows[i], parent.children[insertPos]);
+                } else {
+                    parent.appendChild(expandedRows[i]);
+                }
+                insertPos++;
+            }
+            
+            // 绑定收起按钮事件
+            const collapseBtn = headerRow.querySelector('.collapse-same-btn');
+            if (collapseBtn) {
+                collapseBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    // 只删除属于这个相同块的行（有 data-parent-same 属性且值匹配）
+                    const rowsToRemove = [];
+                    for (let i = 0; i < parent.children.length; i++) {
+                        const child = parent.children[i];
+                        if (child.getAttribute && child.getAttribute('data-parent-same') === `${start}_${end}`) {
+                            rowsToRemove.push(child);
+                        }
+                    }
+                    rowsToRemove.forEach(row => row.remove());
+                    
+                    // 重新创建折叠行
+                    const newFoldRow = document.createElement('tr');
+                    newFoldRow.className = 'collapsed-block';
+                    newFoldRow.setAttribute('data-start', start);
+                    newFoldRow.setAttribute('data-end', end);
+                    newFoldRow.setAttribute('data-type', 'same');
+                    newFoldRow.setAttribute('data-block-idx', `${start}_${end}`);
+                    const size = end - start;
+                    newFoldRow.innerHTML = `<td colspan="3" style="text-align:center; padding: 8px;">
+                        📘 ${t('sameDataBlock')} [0x${start.toString(16).toUpperCase()} - 0x${(end-1).toString(16).toUpperCase()}] (${size} ${t('totalBytes')})
+                        <button class="expand-btn" data-action="expandSame" data-start="${start}" data-end="${end}">➕ ${t('expand')}</button>
+                      </td>`;
+                    
+                    // 将折叠行插入到相同位置
+                    parent.insertBefore(newFoldRow, headerRow);
+                    headerRow.remove();
+                    
+                    // 重新绑定新折叠行中展开按钮的事件
+                    const newExpandBtn = newFoldRow.querySelector('[data-action="expandSame"]');
+                    if (newExpandBtn) {
+                        newExpandBtn.onclick = (e2) => {
+                            e2.stopPropagation();
+                            expandSameBlock(start, end);
+                        };
+                    }
+                };
+            }
+        }
+    }
+    
+    // 主比较流程
+    async function startCompare() {
+        if (isComparing) { showMessage("比较进行中, 请稍后..."); return; }
+        if (!fileAData || !fileBData) { showMessage(t('selectTwoFiles'), true); return; }
+        isComparing = true;
+        compareBtn.disabled = true;
+        compareBtn.innerText = t('comparing');
+        progressArea.style.display = 'flex';
+        progressFill.style.width = '0%';
+        progressPercent.innerText = '0%';
+        tableBody.innerHTML = `<td><td colspan="3" class="loading-placeholder">⏳ ${t('processing')}...</td></tr>`;
+        const bytesA = fileAData, bytesB = fileBData, rowLen = parseInt(bytesPerRowSelect.value);
+        currentBytesPerRow = rowLen;
+        diffBlocksCollapsed.clear();
+        try {
+            const blocks = await buildComparisonBlocks(bytesA, bytesB, rowLen, (p) => { 
+                let perc = Math.floor(p * 100); 
+                progressFill.style.width = `${perc}%`; 
+                progressPercent.innerText = `${perc}%`; 
+            });
+            currentComparisonBlocks = blocks;
+            renderComparison(currentHideSame, rowLen);
+            showMessage(`${t('compareDone')} ${t('diffBlocks')}: ${blocks.filter(b => b.type === 'diff').length}`);
+        } catch (e) { 
+            console.error(e); 
+            tableBody.innerHTML = `<tr><td colspan="3" class="loading-placeholder">❌ ${t('compareError')}</td></tr>`; 
+            showMessage(t('compareError'), true);
+        } finally {
+            setTimeout(() => { progressArea.style.display = 'none'; }, 500);
+            compareBtn.disabled = false;
+            compareBtn.innerText = '🔍 开始比较';
+            isComparing = false;
+        }
+    }
+    
+    compareBtn.onclick = startCompare;
+    toggleSameBtn.onclick = () => { 
+        currentHideSame = !currentHideSame; 
+        toggleSameBtn.innerText = currentHideSame ? t('sameShow') : t('sameHide'); 
+        if (currentComparisonBlocks.length) renderComparison(currentHideSame, currentBytesPerRow); 
+    };
+    bytesPerRowSelect.onchange = () => { 
+        if (currentComparisonBlocks.length) startCompare(); 
+    };
+    
+    // 全局选中解码
+    document.addEventListener('mouseup', (e) => {
+        const selection = window.getSelection();
+        const selectedText = selection.toString().trim();
+        let tooltip = document.getElementById('hexTooltip');
+        if (!tooltip) { 
+            tooltip = document.createElement('div'); 
+            tooltip.id = 'hexTooltip'; 
+            tooltip.className = 'hex-tooltip'; 
+            document.body.appendChild(tooltip); 
+        }
+        if (selectedText && /^[0-9A-Fa-f]{2}([0-9A-Fa-f]{2})*$/.test(selectedText.replace(/\s/g, ''))) {
+            const hexStr = selectedText.replace(/\s/g, '');
+            const bytes = [];
+            for (let i = 0; i < hexStr.length; i += 2) bytes.push(parseInt(hexStr.substr(i, 2), 16));
+            let utf8Str = '', asciiStr = '';
+            try { const decoder = new TextDecoder('utf-8'); utf8Str = decoder.decode(new Uint8Array(bytes)); } catch(e){ utf8Str = '解码失败'; }
+            asciiStr = bytes.map(b => (b >= 32 && b <= 126) ? String.fromCharCode(b) : '.').join('');
+            const range = selection.getRangeAt(0);
+            const rect = range.getBoundingClientRect();
+            tooltip.innerHTML = `🔤 ASCII: ${asciiStr}<br>🌐 UTF-8: ${utf8Str}`;
+            tooltip.style.display = 'block';
+            tooltip.style.left = `${rect.left + window.scrollX}px`;
+            tooltip.style.top = `${rect.bottom + window.scrollY + 5}px`;
+            setTimeout(() => { if (tooltip.style.display === 'block') tooltip.style.display = 'none'; }, 4000);
+        } else { 
+            tooltip.style.display = 'none'; 
+        }
+    });
+    document.addEventListener('mousedown', () => { const t = document.getElementById('hexTooltip'); if (t) t.style.display = 'none'; });
+    
+    // 最终更新界面文字
+    updateUItexts();
+</script>
+</body>
+</html>

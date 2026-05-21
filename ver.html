@@ -1,0 +1,1574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Enhanced Text Compare Tool</title>
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+    }
+    :root {
+      --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      --container-bg: rgba(255,255,255,0.97);
+      --card-bg: #fff;
+      --header-bg: #f8f9fa;
+      --text-main: #333;
+      --text-muted: #888;
+      --text-header: #444;
+      --border-color: #e1e1e1;
+      --line-num-bg: #f0f0f0;
+      --line-num-text: #999;
+      --line-num-border: #ddd;
+    }
+    body.dark-theme {
+      --bg-gradient: linear-gradient(135deg, #1a1c2c 0%, #4a192c 100%);
+      --container-bg: rgba(30,30,30,0.97);
+      --card-bg: #2d2d2d;
+      --header-bg: #383838;
+      --text-main: #e0e0e0;
+      --text-muted: #aaa;
+      --text-header: #eee;
+      --border-color: #444;
+      --line-num-bg: #333;
+      --line-num-text: #777;
+      --line-num-border: #555;
+    }
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: var(--bg-gradient);
+      min-height: 100vh;
+      box-sizing: border-box;
+      padding: 12px;
+      color: var(--text-main);
+      transition: background 0.3s ease;
+    }
+    /* Main container fills the full viewport height */
+    .main-container {
+      width: 100%;
+      max-width: 1600px;
+      flex: 1;                   /* grow to fill body height */
+      background: var(--container-bg);
+      border-radius: 20px;
+      padding: 20px 24px 16px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+      display: flex;
+      flex-direction: column;
+      box-sizing: border-box;
+      min-height: 0;
+    }
+    h2 {
+      text-align: center;
+      margin: 0 0 14px;
+      font-size: 1.8em;
+      flex-shrink: 0;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    /* columns-container grows to fill remaining height inside main-container */
+    #columns-container {
+      flex: 1;
+      min-height: 0;
+      width: 100%;
+      display: flex;
+      flex-direction: row;
+      gap: 12px;
+      overflow-x: auto;
+      padding-bottom: 8px;
+    }
+    .version-column {
+      display: flex;
+      flex-direction: column;
+      min-width: 450px;
+      flex: 1;
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      overflow: hidden;
+      position: relative;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .column-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      background: var(--header-bg);
+      border-bottom: 1px solid var(--border-color);
+      flex-shrink: 0;
+    }
+    .column-title {
+      font-weight: 600;
+      font-size: 0.95em;
+      color: var(--text-header);
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .source-label {
+      font-size: 0.75em;
+      color: var(--text-muted);
+      font-weight: normal;
+      margin-left: 4px;
+      font-style: italic;
+    }
+    .column-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .column-body {
+      position: relative;
+      flex: 1;
+      display: flex;
+      flex-direction: row;
+      min-height: 0;
+    }
+    .line-numbers {
+      width: 36px;
+      background: var(--line-num-bg);
+      border-right: 1px solid var(--line-num-border);
+      padding: 14px 4px;
+      text-align: right;
+      font-family: monospace;
+      font-size: 15px;
+      line-height: 1.5;
+      color: var(--line-num-text);
+      user-select: none;
+      overflow: hidden;
+      box-sizing: border-box;
+      white-space: pre;
+    }
+    .ta-wrap {
+      position: relative;
+      flex: 1;
+      min-width: 0;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    #swap-btn {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      border: 2px solid #d0d8ff;
+      background: white;
+      color: #667eea;
+      font-size: 1em;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.2s, border-color 0.2s, transform 0.3s;
+      padding: 0; min-width: unset; flex-shrink: 0;
+      box-shadow: 0 2px 8px rgba(102,126,234,0.15);
+    }
+    #swap-btn:hover:not(:disabled) {
+      background: #667eea; color: white;
+      border-color: #667eea;
+      transform: rotate(180deg);
+      box-shadow: 0 4px 12px rgba(102,126,234,0.3);
+    }
+    /* Precision slider */
+    #precision-wrap {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+      font-size: 0.8em;
+      color: #888;
+    }
+    #precision-wrap label { white-space: nowrap; }
+    #precision-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 90px;
+      height: 4px;
+      border-radius: 2px;
+      background: linear-gradient(90deg, #667eea, #764ba2);
+      outline: none;
+      cursor: pointer;
+    }
+    #precision-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      background: #667eea;
+      border: 2px solid white;
+      box-shadow: 0 1px 4px rgba(102,126,234,0.4);
+      cursor: pointer;
+    }
+    #precision-slider::-moz-range-thumb {
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      background: #667eea;
+      border: 2px solid white;
+      cursor: pointer;
+    }
+    #precision-label {
+      min-width: 38px;
+      font-weight: 600;
+      color: #667eea;
+      font-size: 0.85em;
+    }
+    textarea {
+      display: block;
+      width: 100%;
+      flex: 1;               /* fill the .ta-wrap height */
+      min-height: 80px;
+      padding: 14px;
+      border: none;
+      font-family: Arial, sans-serif;
+      font-size: 15px;
+      line-height: 1.5;
+      resize: none;          /* no manual resize — layout controls height */
+      box-sizing: border-box;
+      color: var(--text-main);
+      background: transparent;
+      position: relative;
+      z-index: 1;
+      outline: none;
+    }
+    .hi-canvas {
+      position: absolute;
+      top: 0; left: 0;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .char-count {
+      font-size: 0.82em;
+      color: #888;
+      padding-left: 2px;
+      flex-shrink: 0;
+    }
+    /* output-wrap: display:none collapses completely so .ta-row elements fill the space.
+       On compare, switches to flex so #output can grow inside it.              */
+    #output-wrap {
+      display: none;
+      flex: 1;
+      min-height: 0;
+      width: 100%;
+      flex-direction: column;
+    }
+    #output-wrap.visible {
+      display: flex;
+    }
+    .result {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      font-family: monospace;
+      padding: 14px;
+      background: var(--card-bg);
+      box-sizing: border-box;
+      width: 100%;
+      font-size: 15px;
+      line-height: 1.5;
+      display: none; /* Hidden by default, shown during compare */
+    }
+    /* Batch preview — fixed overlay sized/positioned to match #output via JS */
+    #preview-overlay {
+      display: none;
+      position: fixed;
+      z-index: 4000;
+      border-radius: 12px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      font-family: monospace;
+      word-break: break-word;
+      color: #333;
+      padding: 18px 20px;
+      box-sizing: border-box;
+      pointer-events: none;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+    }
+    #preview-overlay.accept-preview {
+      background: rgba(240,255,244,0.97);
+      border: 2px solid #4CAF50;
+    }
+    #preview-overlay.reject-preview {
+      background: rgba(255,242,242,0.97);
+      border: 2px solid #f44336;
+    }
+    #preview-overlay .preview-label {
+      display: block;
+      font-family: Arial, sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid rgba(0,0,0,0.08);
+      display: none;
+    }
+    #preview-overlay.accept-preview .preview-label { color: #4CAF50; }
+    #preview-overlay.reject-preview .preview-label { color: #f44336; }
+    /* Loading overlay */
+    #loading {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.35);
+      z-index: 2000;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 16px;
+      color: white;
+      font-size: 1.1em;
+      font-weight: 600;
+    }
+    #loading.show { display: flex; }
+    .spinner {
+      width: 48px; height: 48px;
+      border: 5px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .added    { background-color: #d4fcdc; color: green; padding: 2px 4px; border-radius: 4px; }
+    .removed  { background-color: #ffd6d6; color: red; text-decoration: line-through; padding: 2px 4px; border-radius: 4px; }
+    .abbreviation { background-color: #fff3cd; color: #856404; padding: 2px 4px; border-radius: 4px; border: 1px solid #ffeaa7; }
+    .expansion    { background-color: #e7f3ff; color: #0c5460; padding: 2px 4px; border-radius: 4px; border: 1px solid #b3d9ff; }
+    .deleted  { display: none; }
+    .accepted { background-color: transparent; color: inherit; text-decoration: none; }
+    .original { background-color: transparent; color: inherit; }
+    .change-group { display: inline; cursor: pointer; transition: opacity 0.2s ease; }
+    .change-group:hover { opacity: 0.8; }
+
+    #buttons { margin-top: 12px; flex-shrink: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
+    .button-group { display: flex; gap: 10px; }
+    button {
+      padding: 12px 24px; font-size: 14px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white; border: none; border-radius: 10px;
+      cursor: pointer; font-weight: 600;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      min-width: 120px;
+    }
+    button:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(102,126,234,0.3); }
+    button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .primary-btn   { background: linear-gradient(135deg, #4CAF50, #45a049); }
+    .primary-btn:hover:not(:disabled)   { box-shadow: 0 8px 20px rgba(76,175,80,0.3); }
+    .secondary-btn { background: linear-gradient(135deg, #f44336, #da190b); }
+    .secondary-btn:hover:not(:disabled) { box-shadow: 0 8px 20px rgba(244,67,54,0.3); }
+    .add-btn       { background: linear-gradient(135deg, #667eea, #764ba2); }
+    .info-btn      { background: linear-gradient(135deg, #2196F3, #1976D2); }
+    .info-btn:hover:not(:disabled)      { box-shadow: 0 8px 20px rgba(33,150,243,0.3); }
+
+    .remove-col-btn {
+      background: none;
+      border: none;
+      color: #ff4d4d;
+      font-size: 1.2em;
+      cursor: pointer;
+      padding: 0 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.2s;
+    }
+    .remove-col-btn:hover {
+      transform: scale(1.2);
+    }
+    .compare-checkbox {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
+    .color-picker {
+      width: 24px;
+      height: 24px;
+      padding: 0;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      cursor: pointer;
+      background: none;
+    }
+    #floating-menu {
+      position: fixed; background: white;
+      border: 1px solid #e1e1e1; border-radius: 10px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+      padding: 8px; display: none; z-index: 1000;
+    }
+    .menu-btn {
+      display: inline-flex; align-items: center;
+      padding: 10px 15px; margin: 3px; border: none;
+      border-radius: 8px; cursor: pointer; font-size: 14px;
+      font-weight: 600; transition: all 0.2s ease;
+      min-width: 100px; justify-content: center;
+    }
+    .accept-btn { background: linear-gradient(135deg, #4CAF50, #45a049); color: white; }
+    .reject-btn { background: linear-gradient(135deg, #f44336, #da190b); color: white; }
+    .menu-btn .icon { margin-right: 8px; }
+    @media (max-width: 768px) {
+      body { padding: 6px; }
+      .main-container { padding: 12px; }
+      button { width: 100%; margin-bottom: 8px; min-width: auto; }
+      .button-group { flex-direction: column; width: 100%; }
+      #buttons { flex-direction: column; align-items: center; }
+      #swap-btn { width: 26px; height: 26px; font-size: 0.85em; }
+    }
+
+    /* ── Import panel overlay ── */
+    #import-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 3000;
+      align-items: center;
+      justify-content: center;
+    }
+    #import-overlay.show { display: flex; }
+    #import-panel {
+      background: white;
+      border-radius: 20px;
+      padding: 32px;
+      width: min(520px, 92vw);
+      box-shadow: 0 24px 60px rgba(0,0,0,0.25);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    #import-panel h3 {
+      margin: 0;
+      font-size: 1.3em;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    #import-panel .close-btn {
+      position: absolute;
+      top: 16px; right: 20px;
+      background: none; border: none;
+      font-size: 1.4em; cursor: pointer;
+      color: #888; min-width: unset; padding: 4px 8px;
+      transition: color 0.2s;
+    }
+    #import-panel .close-btn:hover { color: #333; transform: none; box-shadow: none; }
+    /* JSON schema preview */
+    #import-panel .schema {
+      background: #f6f8ff;
+      border: 1px solid #d0d8ff;
+      border-radius: 10px;
+      padding: 14px 16px;
+      font-family: monospace;
+      font-size: 12.5px;
+      line-height: 1.6;
+      color: #334;
+      white-space: pre;
+      overflow-x: auto;
+    }
+    #import-panel .schema .key   { color: #667eea; }
+    #import-panel .schema .str   { color: #2a9d5c; }
+    #import-panel .schema .num   { color: #e67e22; }
+    #import-panel .schema .cmt   { color: #999; font-style: italic; }
+    /* Drop zone */
+    #drop-zone {
+      border: 2px dashed #c0c8f0;
+      border-radius: 12px;
+      padding: 28px 20px;
+      text-align: center;
+      color: #667eea;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s;
+      user-select: none;
+    }
+    #drop-zone.drag-over {
+      background: rgba(102,126,234,0.08);
+      border-color: #667eea;
+    }
+    #drop-zone .drop-icon { font-size: 2em; margin-bottom: 8px; }
+    #drop-zone p { margin: 4px 0 0; font-size: 0.9em; color: #888; font-weight: 400; }
+    #import-panel .or-divider {
+      display: flex; align-items: center; gap: 10px;
+      color: #aaa; font-size: 0.85em;
+    }
+    #import-panel .or-divider::before,
+    #import-panel .or-divider::after {
+      content: ''; flex: 1; height: 1px; background: #e0e0e0;
+    }
+    #import-error {
+      color: #c0392b;
+      font-size: 0.9em;
+      display: none;
+      background: #fff0f0;
+      border: 1px solid #f5c6c6;
+      border-radius: 8px;
+      padding: 8px 12px;
+    }
+  </style>
+</head>
+<body>
+
+<div id="loading"><div class="spinner"></div>Comparing…</div>
+
+<div class="main-container">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-shrink:0;">
+    <h2 style="margin:0;">Enhanced Text Compare Tool</h2>
+    <button id="themeToggleBtn" onclick="toggleTheme()" class="info-btn" style="min-width:auto; padding:8px 16px;">🌓 Theme</button>
+  </div>
+  <div id="columns-container">
+    <!-- Columns will be added here dynamically -->
+  </div>
+  <div id="buttons">
+    <div class="button-group">
+      <button id="addVersionBtn" onclick="addVersionColumn()" class="add-btn">+ Add Version</button>
+      <div id="precision-wrap" style="margin-left: 10px;">
+        <label for="precision-slider">Precision</label>
+        <input type="range" id="precision-slider" min="1" max="3" step="1" value="2"
+               title="1 = character-level  2 = word-level  3 = sentence-level">
+        <span id="precision-label">Word</span>
+      </div>
+    </div>
+    <button id="compareBtn" onclick="compareTexts()" class="primary-btn">Compare Selected</button>
+    <div class="button-group" style="display:none" id="result-buttons">
+      <button onclick="back()">Back to Edit</button>
+      <button onclick="clearUI()">Clear All</button>
+    </div>
+    <div class="button-group" style="display:none" id="batch-buttons">
+      <button id="accept-all-btn" class="primary-btn"
+              onmouseenter="showBatchPreview('accept')"
+              onmouseleave="hideBatchPreview()"
+              onclick="commitBatch('accept')">Accept All</button>
+      <button id="reject-all-btn" class="secondary-btn"
+              onmouseenter="showBatchPreview('reject')"
+              onmouseleave="hideBatchPreview()"
+              onclick="commitBatch('reject')">Reject All</button>
+    </div>
+    <div class="button-group" style="display:none" id="copy-button">
+      <button onclick="copyFinalText()" class="info-btn">Copy Final Text</button>
+    </div>
+    <div class="button-group" id="io-buttons">
+      <button onclick="exportJSON()" class="info-btn">Export JSON</button>
+      <button onclick="openImportPanel()">Import JSON</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- Import panel -->
+<div id="import-overlay">
+  <div id="import-panel">
+    <button class="close-btn" onclick="closeImportPanel()" title="Close">✕</button>
+    <h3>Import Session JSON</h3>
+
+    <div class="schema"><span class="cmt">// JSON structure produced by Export JSON</span>
+{
+  <span class="key">"version"</span>:    <span class="num">1</span>,                        <span class="cmt">// format version</span>
+  <span class="key">"text1"</span>:      <span class="str">"original text…"</span>,       <span class="cmt">// original box</span>
+  <span class="key">"text2"</span>:      <span class="str">"modified text…"</span>,       <span class="cmt">// modified box</span>
+  <span class="key">"highlight1"</span>: { <span class="key">"s"</span>: <span class="num">0</span>, <span class="key">"e"</span>: <span class="num">0</span> },     <span class="cmt">// frozen selection</span>
+  <span class="key">"highlight2"</span>: { <span class="key">"s"</span>: <span class="num">0</span>, <span class="key">"e"</span>: <span class="num">0</span> },
+  <span class="key">"inResultView"</span>: <span class="str">true</span>,               <span class="cmt">// was compare shown?</span>
+  <span class="key">"changes"</span>: [                          <span class="cmt">// per-change states</span>
+    { <span class="key">"id"</span>: <span class="str">"cg-0"</span>, <span class="key">"type"</span>: <span class="str">"replace"</span>,
+      <span class="key">"oldValue"</span>: <span class="str">"foo"</span>, <span class="key">"newValue"</span>: <span class="str">"bar"</span>,
+      <span class="key">"state"</span>: <span class="str">"accepted"</span> }        <span class="cmt">// accepted|rejected|pending</span>
+  ]
+}</div>
+
+    <div id="drop-zone" onclick="document.getElementById('import-file-input').click()">
+      <div class="drop-icon">📂</div>
+      <strong>Drop your JSON file here</strong>
+      <p>or click to browse</p>
+    </div>
+    <div class="or-divider">or</div>
+    <button class="info-btn" style="width:100%;justify-content:center;display:flex"
+            onclick="document.getElementById('import-file-input').click()">
+      Choose File…
+    </button>
+    <input type="file" id="import-file-input" accept=".json" style="display:none"
+           onchange="handleImportFile(event)">
+    <div id="import-error"></div>
+  </div>
+</div>
+
+<div id="floating-menu">
+  <button class="menu-btn accept-btn" onclick="acceptChange()"><span class="icon">✓</span>Accept</button>
+  <button class="menu-btn reject-btn"  onclick="rejectChange()"><span class="icon">✗</span>Reject</button>
+</div>
+
+<script>
+'use strict';
+let currentChangeGroup = null;
+let changeGroupCounter = 0;
+let versions = [];
+const columnsContainer = document.getElementById('columns-container');
+
+function toggleTheme() {
+  document.body.classList.toggle('dark-theme');
+}
+
+function updateLineNumbers(v) {
+  const lines = v.elements.textarea.value.split('\n').length;
+  let lineNumbersStr = '';
+  for (let i = 1; i <= lines; i++) {
+    lineNumbersStr += i + '\n';
+  }
+  v.elements.lineNumbers.textContent = lineNumbersStr;
+}
+
+let isSyncingScroll = false;
+function syncScroll(sourceElement) {
+  if (isSyncingScroll) return;
+  isSyncingScroll = true;
+  const scrollTop = sourceElement.scrollTop;
+  versions.forEach(v => {
+    if (v.elements.textarea !== sourceElement) v.elements.textarea.scrollTop = scrollTop;
+    if (v.elements.result !== sourceElement) v.elements.result.scrollTop = scrollTop;
+    v.elements.lineNumbers.scrollTop = scrollTop;
+  });
+  isSyncingScroll = false;
+}
+
+// ── Canvas highlight ──────────────────────────────────────────────────────
+// Uses a hidden mirror div to measure character positions — same technique
+// as the textarea-caret-position library. The mirror contains no visible
+// text (off-screen), so find-in-page is unaffected.
+
+// ── Mirror-based caret measurement ───────────────────────────────────────
+// The mirror div is box-sizing:content-box with width = textarea's pure
+// content width (clientWidth - paddingLeft - paddingRight). This makes
+// span.offsetLeft/Top directly comparable to textarea coordinates without
+// any further adjustment for border or padding.
+
+const FONT_PROPS = [
+  'fontFamily','fontSize','fontWeight','fontStyle','fontVariant',
+  'lineHeight','letterSpacing','wordSpacing',
+  'textTransform','textIndent','textAlign','direction',
+  'tabSize','MozTabSize',
+];
+
+let _mirror = null;
+let _mirrorTA = null; // which textarea the mirror is currently styled for
+
+function getMirror() {
+  if (_mirror) return _mirror;
+  _mirror = document.createElement('div');
+  Object.assign(_mirror.style, {
+    position:   'absolute',
+    top:        '-99999px',
+    left:       '-99999px',
+    visibility: 'hidden',
+    boxSizing:  'content-box',   // key: width = content width only
+    whiteSpace: 'pre-wrap',
+    wordWrap:   'break-word',
+    overflow:   'hidden',
+    margin:     '0',
+    padding:    '0',
+    border:     'none',
+  });
+  document.body.appendChild(_mirror);
+  return _mirror;
+}
+
+function syncMirrorStyle(ta) {
+  if (_mirrorTA === ta) return; // already synced
+  const mirror = getMirror();
+  const cs = getComputedStyle(ta);
+  FONT_PROPS.forEach(p => { mirror.style[p] = cs[p]; });
+  _mirrorTA = ta;
+}
+
+// Returns {top, left, height} of char at `index`, relative to the textarea
+// content-area origin (i.e. after border+padding). All measurements in CSS px.
+function caretXY(ta, index) {
+  const mirror = getMirror();
+  syncMirrorStyle(ta);
+
+  const cs = getComputedStyle(ta);
+  const padL = parseFloat(cs.paddingLeft)  || 0;
+  const padR = parseFloat(cs.paddingRight) || 0;
+  // Content width = client width (excludes border, includes padding) minus padding
+  mirror.style.width = (ta.clientWidth - padL - padR) + 'px';
+
+  mirror.innerHTML = '';
+  mirror.appendChild(document.createTextNode(ta.value.slice(0, index)));
+  const span = document.createElement('span');
+  span.textContent = ta.value[index] ?? '\u00a0';
+  mirror.appendChild(span);
+  mirror.appendChild(document.createTextNode(ta.value.slice(index + 1)));
+
+  return {
+    top:    span.offsetTop,
+    left:   span.offsetLeft,
+    height: span.offsetHeight,
+  };
+}
+
+// Draw highlight rectangles on `canvas` for the selection [start, end) in `ta`.
+// caretXY returns coords relative to the content area, so we shift by
+// border + padding to get canvas pixel coords, then subtract scroll offsets.
+function drawHighlight(ta, canvas, start, end, color) {
+  const dpr = window.devicePixelRatio || 1;
+  const W = ta.offsetWidth, H = ta.offsetHeight;
+  canvas.width  = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width  = W + 'px';
+  canvas.style.height = H + 'px';
+
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, W, H);
+  if (start >= end) return;
+
+  const cs  = getComputedStyle(ta);
+  const bL  = parseFloat(cs.borderLeftWidth) || 0;
+  const bT  = parseFloat(cs.borderTopWidth)  || 0;
+  const pL  = parseFloat(cs.paddingLeft)     || 0;
+  const pT  = parseFloat(cs.paddingTop)      || 0;
+  const pR  = parseFloat(cs.paddingRight)    || 0;
+  // Origin of content area inside the canvas
+  const ox = bL + pL;
+  const oy = bT + pT;
+  // Maximum right edge of a full-width line (content width)
+  const contentW = ta.clientWidth - pL - pR;
+
+  ctx.fillStyle = color;
+
+  const startPos = caretXY(ta, start);
+  let lineTop    = startPos.top;
+  let lineLeft   = startPos.left;
+  let lineH      = startPos.height;
+
+  const flush = (rightX) => {
+    const x = ox + lineLeft  - ta.scrollLeft;
+    const y = oy + lineTop   - ta.scrollTop;
+    const w = rightX - lineLeft;
+    if (w > 0) ctx.fillRect(x, y, w, lineH);
+  };
+
+  for (let i = start + 1; i <= end; i++) {
+    const pos = caretXY(ta, i);
+    if (i === end || pos.top > lineTop) {
+      flush(i === end ? pos.left : contentW);
+      if (i < end) { lineTop = pos.top; lineLeft = pos.left; lineH = pos.height; }
+    }
+  }
+}
+
+function drawHighlights(ta, canvas, ranges, color) {
+  const dpr = window.devicePixelRatio || 1;
+  const W = ta.offsetWidth, H = ta.offsetHeight;
+  canvas.width  = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width  = W + 'px';
+  canvas.style.height = H + 'px';
+
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, W, H);
+  
+  if (!ranges || !ranges.length) return;
+
+  const cs  = getComputedStyle(ta);
+  const bL  = parseFloat(cs.borderLeftWidth) || 0;
+  const bT  = parseFloat(cs.borderTopWidth)  || 0;
+  const pL  = parseFloat(cs.paddingLeft)     || 0;
+  const pT  = parseFloat(cs.paddingTop)      || 0;
+  const pR  = parseFloat(cs.paddingRight)    || 0;
+  const ox = bL + pL;
+  const oy = bT + pT;
+  const contentW = ta.clientWidth - pL - pR;
+
+  ctx.fillStyle = color;
+
+  ranges.forEach(range => {
+    const {s, e} = range;
+    if (s >= e) return;
+    
+    const startPos = caretXY(ta, s);
+    let lineTop    = startPos.top;
+    let lineLeft   = startPos.left;
+    let lineH      = startPos.height;
+
+    const flush = (rightX, curLineTop, curLineLeft, curLineH) => {
+        const x = ox + curLineLeft  - ta.scrollLeft;
+        const y = oy + curLineTop   - ta.scrollTop;
+        const w = rightX - curLineLeft;
+        if (w > 0) ctx.fillRect(x, y, w, curLineH);
+    };
+
+    for (let i = s + 1; i <= e; i++) {
+        const pos = caretXY(ta, i);
+        if (i === e || pos.top > lineTop) {
+            flush(i === e ? pos.left : contentW, lineTop, lineLeft, lineH);
+            if (i < e) { lineTop = pos.top; lineLeft = pos.left; lineH = pos.height; }
+        }
+    }
+  });
+}
+
+const LIVE_ALPHA = 0.25;
+const FROZEN_ALPHA = 0.18;
+
+function hexToRgba(hex, alpha) {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+function setupHighlight(version) {
+  const ta = version.elements.textarea;
+  const canvas = version.elements.canvas;
+  version.highlights = []; // Array of {s, e}
+
+  function redraw() {
+    if (ta.style.display === 'none' || !ta.offsetParent) return;
+    const color = hexToRgba(version.elements.colorPicker.value, FROZEN_ALPHA);
+    drawHighlights(ta, canvas, version.highlights, color);
+  }
+  version.redrawHighlight = redraw;
+
+  ta.addEventListener('blur', redraw);
+  ta.addEventListener('focus', redraw);
+  ta.addEventListener('mouseup', redraw);
+  ta.addEventListener('keyup', redraw);
+  ta.addEventListener('scroll', redraw);
+  ta.addEventListener('input', redraw);
+
+  document.addEventListener('selectionchange', () => {
+    if (document.activeElement === ta) redraw();
+  });
+
+  new ResizeObserver(redraw).observe(ta);
+
+  // drag-drop
+  ['dragenter','dragover','dragleave','drop'].forEach(ev =>
+    ta.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); }));
+  ta.addEventListener('dragenter', () => ta.style.backgroundColor = 'rgba(102,126,234,0.05)');
+  ta.addEventListener('dragover',  () => ta.style.backgroundColor = 'rgba(102,126,234,0.05)');
+  ta.addEventListener('dragleave', () => ta.style.backgroundColor = '');
+  ta.addEventListener('drop', e => {
+    ta.style.backgroundColor = '';
+    const file = e.dataTransfer.files[0];
+    if (!file) return;
+    const fr = new FileReader();
+    fr.onload = ev => { 
+        version.source = file.name;
+        ta.value = ev.target.result; 
+        updateCount(version);
+        updateLineNumbers(version);
+        updateSourceLabel(version);
+    };
+    fr.readAsText(file);
+  });
+}
+
+function addVersionColumn(text = '', color = '#667eea', isOriginal = false) {
+  const index = versions.length;
+  const colId = `col-${Date.now()}-${index}`;
+  const title = isOriginal ? 'Original' : `Version ${index}`;
+  
+  const col = document.createElement('div');
+  col.className = 'version-column';
+  col.id = colId;
+  
+  col.innerHTML = `
+    <div class="column-header">
+      <button class="remove-col-btn swap-col-btn" title="Swap with previous" style="color:#667eea; margin-right:4px;">⇅</button>
+      <div class="column-title" style="display:flex; align-items:center;">
+        ${title}
+        <span class="source-label"></span>
+      </div>
+      <div class="column-controls">
+        <button class="remove-col-btn highlight-btn" title="Highlight selection" style="color:#4CAF50; font-size:1.4em; margin-right:4px;">🖍</button>
+        <input type="checkbox" class="compare-checkbox" title="Select for comparison" ${isOriginal ? 'checked disabled' : 'checked'}>
+        <input type="color" class="color-picker" value="${color}" title="Highlight color">
+        ${!isOriginal ? `<button class="remove-col-btn del-col-btn" title="Remove version">×</button>` : ''}
+      </div>
+    </div>
+    <div class="column-body">
+      <div class="line-numbers">1</div>
+      <div class="ta-wrap">
+        <canvas class="hi-canvas"></canvas>
+        <textarea placeholder="${isOriginal ? 'Original text...' : 'Modified text...'}" spellcheck="false"></textarea>
+      </div>
+      <div class="result"></div>
+    </div>
+    <div class="column-header" style="border-top: 1px solid #e1e1e1; border-bottom: none; font-size: 0.8em; color: #888; height: 16px; padding: 2px 14px;">
+      <span class="char-count">0 characters</span>
+    </div>
+  `;
+  
+  columnsContainer.appendChild(col);
+  
+  const v = {
+    id: colId,
+    isOriginal: isOriginal,
+    elements: {
+      column: col,
+      textarea: col.querySelector('textarea'),
+      canvas: col.querySelector('canvas'),
+      lineNumbers: col.querySelector('.line-numbers'),
+      result: col.querySelector('.result'),
+      charCount: col.querySelector('.char-count'),
+      compareCheckbox: col.querySelector('.compare-checkbox'),
+      colorPicker: col.querySelector('.color-picker'),
+      removeBtn: col.querySelector('.del-col-btn'),
+      swapBtn: col.querySelector('.swap-col-btn'),
+      highlightBtn: col.querySelector('.highlight-btn'),
+      sourceLabel: col.querySelector('.source-label')
+    },
+    source: 'Clipboard'
+  };
+  
+  v.elements.textarea.value = text;
+  
+  v.elements.textarea.addEventListener('input', () => {
+    updateCount(v);
+    updateLineNumbers(v);
+  });
+  
+  v.elements.textarea.addEventListener('scroll', () => {
+    syncScroll(v.elements.textarea);
+    v.elements.lineNumbers.scrollTop = v.elements.textarea.scrollTop;
+  });
+
+  v.elements.result.addEventListener('scroll', () => {
+    syncScroll(v.elements.result);
+  });
+  
+  v.elements.colorPicker.addEventListener('input', () => {
+    v.redrawHighlight();
+  });
+
+  if (v.elements.removeBtn) {
+    v.elements.removeBtn.addEventListener('click', () => {
+      removeVersionColumn(v);
+    });
+  }
+
+  if (v.elements.swapBtn) {
+      if (isOriginal) {
+          v.elements.swapBtn.style.display = 'none';
+      } else {
+          v.elements.swapBtn.addEventListener('click', () => {
+              const idx = versions.indexOf(v);
+              if (idx > 0) swapVersions(idx, idx - 1);
+          });
+      }
+  }
+
+  v.elements.highlightBtn.addEventListener('click', () => {
+      const ta = v.elements.textarea;
+      const s = ta.selectionStart;
+      const e = ta.selectionEnd;
+      if (s !== e) {
+          const existingIdx = v.highlights.findIndex(r => r.s === s && r.e === e);
+          if (existingIdx > -1) {
+              v.highlights.splice(existingIdx, 1);
+          } else {
+              v.highlights.push({s, e});
+          }
+          v.redrawHighlight();
+      }
+  });
+
+  v.elements.textarea.addEventListener('paste', (e) => {
+      v.source = 'Clipboard';
+      updateSourceLabel(v);
+  });
+  
+  versions.push(v);
+  setupHighlight(v);
+  updateSourceLabel(v);
+  updateCount(v);
+  updateLineNumbers(v);
+}
+
+function removeVersionColumn(version) {
+  const index = versions.indexOf(version);
+  if (index > -1) {
+    versions.splice(index, 1);
+    version.elements.column.remove();
+    // Rename subsequent versions
+    versions.forEach((v, idx) => {
+        if (!v.isOriginal) {
+            v.elements.column.querySelector('.column-title').textContent = `Version ${idx}`;
+        }
+    });
+  }
+}
+
+function updateCount(v) {
+  v.elements.charCount.textContent = `${v.elements.textarea.value.length} characters`;
+}
+
+function updateSourceLabel(v) {
+    if (v.elements.sourceLabel) {
+        v.elements.sourceLabel.textContent = ` (${v.source})`;
+    }
+}
+
+function swapVersions(idx1, idx2) {
+    const v1 = versions[idx1];
+    const v2 = versions[idx2];
+    
+    // Swap text
+    const tmpText = v1.elements.textarea.value;
+    v1.elements.textarea.value = v2.elements.textarea.value;
+    v2.elements.textarea.value = tmpText;
+    
+    // Swap source
+    const tmpSource = v1.source;
+    v1.source = v2.source;
+    v2.source = tmpSource;
+    
+    // Swap highlights
+    const tmpHighlights = v1.highlights;
+    v1.highlights = v2.highlights;
+    v2.highlights = tmpHighlights;
+    
+    // Update UI
+    [v1, v2].forEach(v => {
+        updateCount(v);
+        updateLineNumbers(v);
+        updateSourceLabel(v);
+        v.redrawHighlight();
+    });
+}
+
+// Initialize with Original and one Version
+addVersionColumn('', '#667eea', true);
+addVersionColumn('', '#4CAF50', false);
+
+// ── Diff (run in async chunks to avoid blocking the UI) ───────────────────
+
+function escapeHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+          .replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+}
+
+function isAbbreviation(abbr, full) {
+  const ca = abbr.replace(/[^\w]/g,'').toUpperCase();
+  if (ca.length < 2 || ca.length > 8 || abbr.toLowerCase() === abbr) return false;
+  const skip = new Set(['A','AN','THE','OF','IN','AT','FOR','TO','WITH','BY','FROM','AND','OR','IS','ARE','WAS','WERE']);
+  const words = full.replace(/[^\w\s]/g,'').split(/\s+/).filter(w=>w&&!skip.has(w.toUpperCase()));
+  if (words.length < 2 || words.length > 6) return false;
+  return words.map(w=>w[0].toUpperCase()).join('') === ca;
+}
+function findAbbrInText(abbr, text) {
+  const c = abbr.replace(/[^\w]/g,''); if(!c) return null;
+  const e = c.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  return text.match(new RegExp(`([^()]*?)\\s*\\(\\s*${e}\\s*\\)`,'i'))
+      || text.match(new RegExp(`${e}\\s*\\(([^()]*)\\)`,'i'));
+}
+function areEquivalent(a, b) {
+  if (a===b) return true;
+  const ca=a.trim(), cb=b.trim();
+  if (findAbbrInText(ca,cb)||findAbbrInText(cb,ca)) return true;
+  if (Math.abs(ca.length-cb.length)>5) {
+    const sh=ca.length<cb.length?ca:cb, lo=ca.length<cb.length?cb:ca;
+    if (sh.length<=6&&/^[A-Z]+$/.test(sh.replace(/[^\w]/g,''))) return isAbbreviation(sh,lo);
+  }
+  return false;
+}
+function isAbbrExpansion(a, b) {
+  const ca=a.trim(), cb=b.trim();
+  if (Math.abs(ca.length-cb.length)<10) return false;
+  const sh=ca.length<cb.length?ca:cb, lo=ca.length<cb.length?cb:ca;
+  const ac=sh.replace(/[^\w]/g,'');
+  return ac.length>=2&&ac.length<=6&&/^[A-Z]+$/.test(ac)
+    &&(isAbbreviation(ac,lo)||!!findAbbrInText(ac,lo));
+}
+
+// LCS via async chunks — yields every CHUNK rows so the page stays responsive.
+// Uses Uint32Array rows for memory efficiency; no size cap so diff is always correct.
+async function computeLCS(a, b) {
+  const m=a.length, n=b.length;
+  const CHUNK = 300;
+  const dp = [];
+  for (let i=0;i<=m;i++) dp.push(new Uint32Array(n+1));
+  for (let i=1;i<=m;i++) {
+    if (i % CHUNK === 0) await new Promise(r => setTimeout(r, 0));
+    for (let j=1;j<=n;j++)
+      dp[i][j] = a[i-1]===b[j-1] ? dp[i-1][j-1]+1 : Math.max(dp[i-1][j],dp[i][j-1]);
+  }
+  const lcs=[]; let i=m,j=n;
+  while(i>0&&j>0){
+    if(a[i-1]===b[j-1]){lcs.unshift(a[i-1]);i--;j--;}
+    else if(dp[i-1][j]>dp[i][j-1])i--;else j--;
+  }
+  return lcs;
+}
+
+async function buildDiff(oldArr, newArr) {
+  const lcs = await computeLCS(oldArr, newArr);
+
+  const diff=[]; let i=0,j=0,k=0;
+  while(i<oldArr.length||j<newArr.length){
+    if(i<oldArr.length&&j<newArr.length&&oldArr[i]===newArr[j]){
+      diff.push({type:'equal',value:oldArr[i]});i++;j++;k++;
+    } else if(i<oldArr.length&&j<newArr.length&&areEquivalent(oldArr[i],newArr[j])){
+      diff.push({type:'equal',value:oldArr[i]});i++;j++;k++;
+    } else {
+      const del=[],ins=[];
+      while(i<oldArr.length&&(k>=lcs.length||oldArr[i]!==lcs[k]))del.push(oldArr[i++]);
+      while(j<newArr.length&&(k>=lcs.length||newArr[j]!==lcs[k]))ins.push(newArr[j++]);
+      const dt=del.join(''),it=ins.join('');
+      if(del.length&&ins.length)
+        diff.push(isAbbrExpansion(dt,it)?{type:'abbreviation-expand',oldValue:dt,newValue:it}:{type:'replace',oldValue:dt,newValue:it});
+      else if(del.length)diff.push({type:'delete',value:dt});
+      else if(ins.length)diff.push({type:'insert',value:it});
+    }
+  }
+  return diff;
+}
+
+function renderDiff(diff) {
+  return diff.map(item=>{
+    if(item.type==='equal') return escapeHtml(item.value);
+    const gid=`cg-${changeGroupCounter++}`; let inner='';
+    if(item.type==='delete')
+      inner=`<span class="removed" data-type="removed">${escapeHtml(item.value)}</span>`;
+    else if(item.type==='insert')
+      inner=`<span class="added" data-type="added">${escapeHtml(item.value)}</span>`;
+    else if(item.type==='replace')
+      inner=`<span class="removed" data-type="removed">${escapeHtml(item.oldValue)}</span>`
+           +`<span class="added" data-type="added">${escapeHtml(item.newValue)}</span>`;
+    else if(item.type==='abbreviation-expand')
+      inner=`<span class="abbreviation" data-type="abbreviation">${escapeHtml(item.oldValue)}</span>`
+           +`<span class="expansion" data-type="expansion">${escapeHtml(item.newValue)}</span>`;
+    return `<span class="change-group" data-group-id="${gid}" onclick="showMenu(event,'${gid}')">${inner}</span>`;
+  }).join('');
+}
+
+// ── Menu & accept/reject ──────────────────────────────────────────────────
+
+function showMenu(event, groupId) {
+  event.stopPropagation();
+  let t=event.target;
+  while(t&&!t.dataset.groupId)t=t.parentElement;
+  if(!t)return;
+  currentChangeGroup=groupId;
+  const menu=document.getElementById('floating-menu');
+  const rect=t.getBoundingClientRect();
+  menu.style.left=rect.left+'px';
+  menu.style.top=(rect.bottom+window.scrollY+5)+'px';
+  menu.style.display='block';
+}
+function hideMenu(){document.getElementById('floating-menu').style.display='none';currentChangeGroup=null;}
+function applyToGroup(gid,action){
+  const g=document.querySelector(`[data-group-id="${gid}"]`);if(!g)return;
+  g.querySelectorAll('[data-type="removed"]').forEach(s=>s.className=action==='accept'?'deleted':'original');
+  g.querySelectorAll('[data-type="added"]').forEach(s=>s.className=action==='accept'?'accepted':'deleted');
+  g.querySelectorAll('[data-type="abbreviation"]').forEach(s=>s.className=action==='accept'?'deleted':'original');
+  g.querySelectorAll('[data-type="expansion"]').forEach(s=>s.className=action==='accept'?'accepted':'deleted');
+}
+function acceptChange(){if(currentChangeGroup){applyToGroup(currentChangeGroup,'accept');hideMenu();}}
+function rejectChange() {if(currentChangeGroup){applyToGroup(currentChangeGroup,'reject');hideMenu();}}
+
+// Batch accept/reject: freeze the preview visually, then apply in background
+function commitBatch(action) {
+  const overlay = document.getElementById('preview-overlay');
+  if (overlay.style.display !== 'none') {
+    const snapshot = overlay.innerHTML;
+    const snapshotClass = overlay.className;
+    document.querySelectorAll('.change-group').forEach(g => applyToGroup(g.dataset.groupId, action));
+    overlay.innerHTML = snapshot;
+    overlay.className = snapshotClass;
+    overlay.style.display = 'block';
+    overlay.style.transition = 'opacity 0.5s';
+    overlay.style.opacity = '1';
+    setTimeout(() => {
+      overlay.style.opacity = '0';
+      setTimeout(() => {
+        overlay.style.display = 'none';
+        overlay.style.opacity = '1';
+        overlay.style.transition = '';
+      }, 500);
+    }, 300);
+  } else {
+    document.querySelectorAll('.change-group').forEach(g => applyToGroup(g.dataset.groupId, action));
+  }
+}
+
+// ── Copy ─────────────────────────────────────────────────────────────────
+
+function extractFinalText(el){
+  let r='';
+  function walk(node){
+    if(node.nodeType===Node.TEXT_NODE){r+=node.textContent;return;}
+    if(node.nodeType!==Node.ELEMENT_NODE)return;
+    const cl=node.classList;
+    if(cl.contains('deleted'))return;
+    if(cl.contains('accepted')||cl.contains('original')){r+=node.textContent;return;}
+    if(cl.contains('removed')||cl.contains('abbreviation')){r+=node.textContent;return;}
+    if(cl.contains('added')||cl.contains('expansion'))return;
+    for(const c of node.childNodes)walk(c);
+  }
+  walk(el); return r.trim();
+}
+function copyFinalText(){
+  const checkedVersions = versions.filter(v => v.elements.compareCheckbox.checked);
+  const lastVersion = checkedVersions[checkedVersions.length - 1];
+  if (!lastVersion) return;
+  
+  const inCompareMode = document.getElementById('compareBtn').style.display === 'none';
+  const text = inCompareMode ? extractFinalText(lastVersion.elements.result) : lastVersion.elements.textarea.value;
+  
+  navigator.clipboard.writeText(text).then(()=>alert('Copied final version!')).catch(()=>{
+    const ta=document.createElement('textarea');ta.value=text;
+    document.body.appendChild(ta);ta.select();document.execCommand('copy');
+    document.body.removeChild(ta);alert('Copied final version!');
+  });
+}
+
+// ── UI flow ───────────────────────────────────────────────────────────────
+
+async function compareTexts(){
+  const btn=document.getElementById('compareBtn');
+  if(btn.disabled)return;
+  
+  const checkedVersions = versions.filter(v => v.elements.compareCheckbox.checked);
+  if (checkedVersions.length < 2) {
+      alert('Please select at least 2 versions to compare.');
+      return;
+  }
+
+  btn.disabled=true;
+  document.getElementById('loading').classList.add('show');
+
+  // Yield so the loading overlay actually renders before we block
+  await new Promise(r=>setTimeout(r,30));
+
+  try {
+    changeGroupCounter=0;
+    const level = document.getElementById('precision-slider').value;
+    
+    // Cascading diff
+    for (let i = 1; i < checkedVersions.length; i++) {
+        const vPrev = checkedVersions[i-1];
+        const vCurr = checkedVersions[i];
+        
+        const tokens1 = tokenize(vPrev.elements.textarea.value.trim(), level);
+        const tokens2 = tokenize(vCurr.elements.textarea.value.trim(), level);
+        const diff = await buildDiff(tokens1, tokens2);
+        vCurr.elements.result.innerHTML = renderDiff(diff);
+        
+        // UI toggle
+        vCurr.elements.textarea.closest('.ta-wrap').style.display = 'none';
+        vCurr.elements.result.style.display = 'block';
+    }
+    
+    // Handle the first one (usually Original)
+    // It doesn't have a "previous" to compare against in this cascade, 
+    // so we just keep its textarea visible or we could show it as "Base".
+    // The prompt says "隐藏版本内容，替换显示该版本和前一版比较结果界面".
+    // Original is the absolute base, so it stays as is.
+
+    btn.style.display='none';
+    document.getElementById('addVersionBtn').disabled = true;
+    document.getElementById('result-buttons').style.display='flex';
+    document.getElementById('batch-buttons').style.display='flex';
+    document.getElementById('copy-button').style.display='flex';
+  } finally {
+    document.getElementById('loading').classList.remove('show');
+    btn.disabled=false;
+  }
+}
+
+function back(){
+  versions.forEach(v => {
+    v.elements.textarea.closest('.ta-wrap').style.display = 'flex';
+    v.elements.result.style.display = 'none';
+    v.elements.result.innerHTML = '';
+  });
+  
+  const btn = document.getElementById('compareBtn');
+  btn.style.display = 'inline-block';
+  btn.disabled = false;
+  document.getElementById('addVersionBtn').disabled = false;
+  document.getElementById('result-buttons').style.display = 'none';
+  document.getElementById('batch-buttons').style.display = 'none';
+  document.getElementById('copy-button').style.display = 'none';
+  hideMenu();
+}
+
+function clearUI(){
+  if (confirm('Are you sure you want to clear all texts?')) {
+    versions.forEach(v => {
+      v.elements.textarea.value = '';
+      v.highlights = [];
+      v.source = 'Clipboard';
+      updateCount(v);
+      updateLineNumbers(v);
+      updateSourceLabel(v);
+      v.redrawHighlight();
+    });
+    back();
+  }
+}
+document.addEventListener('click',e=>{
+  if(!e.target.closest('#floating-menu')&&!e.target.closest('.change-group'))hideMenu();
+});
+
+// ── Precision slider ─────────────────────────────────────────────────────
+const precisionSlider = document.getElementById('precision-slider');
+const precisionLabel  = document.getElementById('precision-label');
+const PRECISION_LABELS = { '1': 'Char', '2': 'Word', '3': 'Sentence' };
+
+precisionSlider.addEventListener('input', () => {
+  precisionLabel.textContent = PRECISION_LABELS[precisionSlider.value];
+});
+
+// Split text into tokens based on precision level
+function tokenize(text, level) {
+  if (level === '1') return text.split('');           // character
+  if (level === '3') return text.split(/(?<=[.!?])\s+/); // sentence
+  return text.split(/(\s+)/);                         // word (default)
+}
+
+// Swap texts is removed in favor of multi-column management.
+
+// ── Batch preview overlay ─────────────────────────────────────────────────
+// Renders what the full output would look like after Accept All / Reject All
+// as an overlay that covers the output pane exactly, with a fade transition.
+
+let _previewHideTimer = null;
+
+function buildPreviewHTML(v, action) {
+  const output = v.elements.result;
+  const clone = output.cloneNode(true);
+  clone.style.display = 'block';
+  clone.querySelectorAll('[data-type="removed"],[data-type="abbreviation"]').forEach(s => {
+    s.className = action === 'accept' ? 'deleted' : 'original';
+  });
+  clone.querySelectorAll('[data-type="added"],[data-type="expansion"]').forEach(s => {
+    s.className = action === 'accept' ? 'accepted' : 'deleted';
+  });
+  clone.querySelectorAll('.change-group').forEach(g => g.removeAttribute('onclick'));
+  return clone.innerHTML;
+}
+
+function showBatchPreview(action) {
+  clearTimeout(_previewHideTimer);
+  const checkedVersions = versions.filter(v => v.elements.compareCheckbox.checked);
+  const inCompareMode = document.getElementById('compareBtn').style.display === 'none';
+  if (!inCompareMode || checkedVersions.length < 2) return;
+
+  const overlay = document.getElementById('preview-overlay');
+  overlay.innerHTML = '';
+  overlay.className = action === 'accept' ? 'accept-preview' : 'reject-preview';
+  
+  // We'll just preview the LAST compared version for simplicity, 
+  // or we could show multiple overlays. Let's do the last one as it's the "final result".
+  const lastV = checkedVersions[checkedVersions.length - 1];
+  const label = action === 'accept'
+    ? '<span class="preview-label">✓ Preview: Accept All</span>'
+    : '<span class="preview-label">✗ Preview: Reject All</span>';
+
+  overlay.innerHTML = label + buildPreviewHTML(lastV, action);
+
+  const r = lastV.elements.result.getBoundingClientRect();
+  overlay.style.left   = r.left   + 'px';
+  overlay.style.top    = r.top    + 'px';
+  overlay.style.width  = r.width  + 'px';
+  overlay.style.height = r.height + 'px';
+  overlay.scrollTop = lastV.elements.result.scrollTop;
+  overlay.style.opacity = '1';
+  overlay.style.transition = 'opacity 0.15s';
+  overlay.style.display = 'block';
+}
+
+function hideBatchPreview() {
+  _previewHideTimer = setTimeout(() => {
+    const overlay = document.getElementById('preview-overlay');
+    overlay.style.display = 'none';
+  }, 80);
+}
+
+// ── JSON export / import ──────────────────────────────────────────────────
+
+// Collect the current state of every change-group in the result view.
+// Each entry: { id, type, oldValue, newValue, state }
+// state: 'pending' | 'accepted' | 'rejected'
+function collectChangeStates() {
+  const groups = document.querySelectorAll('.change-group');
+  return Array.from(groups).map(g => {
+    const id = g.dataset.groupId;
+    // Determine type from child data-type spans
+    const removed = g.querySelector('[data-type="removed"]');
+    const added   = g.querySelector('[data-type="added"]');
+    const abbr    = g.querySelector('[data-type="abbreviation"]');
+    const exp     = g.querySelector('[data-type="expansion"]');
+
+    let type, oldValue='', newValue='';
+    if (abbr && exp) {
+      type = 'abbreviation-expand';
+      oldValue = abbr.textContent;
+      newValue = exp.textContent;
+    } else if (removed && added) {
+      type = 'replace';
+      oldValue = removed.textContent;
+      newValue = added.textContent;
+    } else if (removed) {
+      type = 'delete';
+      oldValue = removed.textContent;
+    } else if (added) {
+      type = 'insert';
+      newValue = added.textContent;
+    }
+
+    // Detect state from className of the relevant span
+    const primary = abbr || removed || added;
+    let state = 'pending';
+    if (primary) {
+      const cn = primary.className;
+      if (cn === 'deleted') state = 'rejected';   // old content deleted = change accepted
+      else if (cn === 'original') state = 'rejected'; // old kept = change rejected
+      else if (cn === 'accepted') state = 'accepted';
+      // More precise: for 'accept', removed→deleted, added→accepted
+      // For 'reject', removed→original, added→deleted
+      if (removed) {
+        const rcn = removed.className;
+        if (rcn === 'deleted') state = 'accepted';
+        else if (rcn === 'original') state = 'rejected';
+        else state = 'pending';
+      } else if (added && !removed) {
+        const acn = added.className;
+        if (acn === 'accepted') state = 'accepted';
+        else if (acn === 'deleted') state = 'rejected';
+        else state = 'pending';
+      } else if (abbr) {
+        const bcn = abbr.className;
+        if (bcn === 'deleted') state = 'accepted';
+        else if (bcn === 'original') state = 'rejected';
+        else state = 'pending';
+      }
+    }
+
+    return { id, type, oldValue, newValue, state };
+  });
+}
+
+function exportJSON() {
+  const inCompareMode = document.getElementById('compareBtn').style.display === 'none';
+  const data = {
+    version: 2,
+    versions: versions.map(v => ({
+      text: v.elements.textarea.value,
+      color: v.elements.colorPicker.value,
+      isOriginal: v.isOriginal,
+      highlights: v.highlights,
+      source: v.source,
+      compareChecked: v.elements.compareCheckbox.checked
+    })),
+    inCompareMode,
+    changes: inCompareMode ? collectChangeStates() : []
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'compare-session.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function openImportPanel() {
+  document.getElementById('import-error').style.display = 'none';
+  document.getElementById('import-overlay').classList.add('show');
+}
+function closeImportPanel() {
+  document.getElementById('import-overlay').classList.remove('show');
+}
+
+// Drop zone drag events
+const dropZone = document.getElementById('drop-zone');
+dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', e => { dropZone.classList.remove('drag-over'); });
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) processImportFile(file);
+});
+
+// Close overlay on backdrop click
+document.getElementById('import-overlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('import-overlay')) closeImportPanel();
+});
+
+function handleImportFile(event) {
+  const file = event.target.files[0];
+  event.target.value = '';
+  if (file) processImportFile(file);
+}
+
+function showImportError(msg) {
+  const el = document.getElementById('import-error');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+async function processImportFile(file) {
+  document.getElementById('import-error').style.display = 'none';
+  let data;
+  try {
+    data = JSON.parse(await file.text());
+  } catch(e) {
+    showImportError('Could not parse file — make sure it is a valid JSON file.'); return;
+  }
+  
+  if (!data.version || (data.version !== 1 && data.version !== 2)) {
+    showImportError('Incompatible format. Was this exported by this tool?'); return;
+  }
+
+  closeImportPanel();
+  
+  // Clear existing columns
+  while (versions.length > 0) {
+      removeVersionColumn(versions[0]);
+  }
+
+  if (data.version === 1) {
+      addVersionColumn(data.text1 || '', '#667eea', true);
+      addVersionColumn(data.text2 || '', '#4CAF50', false);
+      if (data.highlight1) versions[0].highlights = [data.highlight1];
+      if (data.highlight2) versions[1].highlights = [data.highlight2];
+  } else if (data.version === 2) {
+      data.versions.forEach(vData => {
+          addVersionColumn(vData.text, vData.color, vData.isOriginal);
+          const v = versions[versions.length - 1];
+          v.highlights = vData.highlights || [];
+          v.source = vData.source || 'Clipboard';
+          v.elements.compareCheckbox.checked = vData.compareChecked;
+          updateSourceLabel(v);
+      });
+  }
+
+  if ((data.inResultView || data.inCompareMode) && data.changes && data.changes.length > 0) {
+    await compareTexts();
+    restoreChangeStates(data.changes);
+  } else {
+    back();
+    versions.forEach(v => v.redrawHighlight());
+  }
+}
+
+function restoreChangeStates(changes) {
+  changes.forEach(({id, state}) => {
+    if (state === 'accepted') applyToGroup(id, 'accept');
+    else if (state === 'rejected') applyToGroup(id, 'reject');
+    // 'pending' → leave as-is
+  });
+}
+</script>
+<div id="preview-overlay"></div>
+</body>
+</html>
